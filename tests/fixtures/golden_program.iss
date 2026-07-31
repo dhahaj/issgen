@@ -168,38 +168,6 @@
         </attribute>
       </placement>
     </placementData>
-    <componentData>
-      <component index="0">
-        <componentBasic>
-          <componentName>PP-5922-26</componentName>
-          <componentType>Chip</componentType>
-        </componentBasic>
-        <packageData>
-          <package />
-        </packageData>
-        <deliveryDate>0001-01-01T00:00:00</deliveryDate>
-      </component>
-      <component index="1">
-        <componentBasic>
-          <componentName>102794-1</componentName>
-          <componentType>SOP</componentType>
-        </componentBasic>
-        <packageData>
-          <package />
-        </packageData>
-        <deliveryDate>0001-01-01T00:00:00</deliveryDate>
-      </component>
-      <component index="2">
-        <componentBasic>
-          <componentName>PP-5919-1</componentName>
-          <componentType>Chip</componentType>
-        </componentBasic>
-        <packageData>
-          <package />
-        </packageData>
-        <deliveryDate>0001-01-01T00:00:00</deliveryDate>
-      </component>
-    </componentData>
     <userBallPatternData />
   </model>
   <machine>

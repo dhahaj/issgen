@@ -70,6 +70,24 @@ def test_circuitcam_reference_flagged():
     assert any("effectiveCount" in f for f in findings)
 
 
+def test_stub_model_component_data_flagged():
+    """Stub model/componentData records (no centering child) deadlock JaNets
+    against its component database. CircuitCAM's centering-bearing records and
+    JaNets' complete records are known to open and must NOT be flagged."""
+    stub = b"""<?xml version="1.0" encoding="utf-8"?><productionProgram>
+    <core><placementData /><componentData /></core>
+    <model><componentData><component index="0">
+      <componentBasic><componentName>X-1</componentName><componentType>Chip</componentType></componentBasic>
+      <packageData><package /></packageData>
+      <deliveryDate>0001-01-01T00:00:00</deliveryDate>
+    </component></componentData></model></productionProgram>"""
+    findings = check_semantics(etree.fromstring(stub))
+    assert any("deadlock" in f for f in findings)
+    # Program.iss (CircuitCAM) model components carry centering - not flagged:
+    cc = check_semantics(etree.fromstring((FIX / "Program.iss").read_bytes()))
+    assert not any("deadlock" in f for f in cc)
+
+
 def test_schema_validation_catches_garbage():
     bad = b'<?xml version="1.0" encoding="utf-8"?><productionProgram><nonsense /></productionProgram>'
     assert validate_bytes(bad) != []

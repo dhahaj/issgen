@@ -90,12 +90,13 @@ def make_build_model(
         if name not in order:
             order.append(name)
 
+    # componentType is never emitted (model/componentData is prohibited - see
+    # emit.model), so a NULL PkgClassID no longer blocks anything. Only parts
+    # absent from the database entirely are a problem: their core geometry
+    # (componentSize) would be fabricated.
     missing = [n for n in order if n not in parts]
-    untyped = [n for n in order if n in parts and parts[n].component_type is None]
-    if missing or untyped:
-        problems = [f"{n}: not in component database" for n in missing] + [
-            f"{n}: NULL PkgClassID in DETEX - componentType unknown" for n in untyped
-        ]
+    if missing:
+        problems = [f"{n}: not in component database" for n in missing]
         if not allow_missing:
             raise MissingPartError(
                 "unresolvable component(s):\n  " + "\n  ".join(problems)
@@ -106,7 +107,7 @@ def make_build_model(
     components: list[Component] = []
     for name in order:
         part = parts.get(name)
-        if part is None or part.component_type is None:
+        if part is None:
             part = _placeholder(name)
         components.append(Component(part))
 

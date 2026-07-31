@@ -50,34 +50,28 @@ def test_model_pwb_data():
     assert (b_off.get("x"), b_off.get("y")) == ("0", "0")
 
 
-def test_model_placements_and_components():
+def test_model_placements():
     root = emit_model(_bm())
     pls = root.findall("placementData/placement")
     assert [p.findtext("placementId") for p in pls] == ["R7", "U1", "C2"]
     action = pls[0].find("attribute/action")
     assert (action.get("placement"), action.get("adhesive")) == ("PLACE", "NOADHESIVE")
-    comps = root.findall("componentData/component")
-    assert [c.findtext("componentBasic/componentName") for c in comps] == [
-        "PP-5922-26", "102794-1", "PP-5919-1",
-    ]
-    assert comps[0].findtext("componentBasic/componentType") == "Chip"
-    assert comps[1].findtext("componentBasic/componentType") == "SOP"
-    assert comps[0].find("packageData/package") is not None
-    assert comps[0].findtext("deliveryDate") == "0001-01-01T00:00:00"
     assert root.find("userBallPatternData") is not None
 
 
-def test_model_core_component_order_identical():
-    bm = _bm()
-    core_names = [
-        c.findtext("componentBasic/componentName")
-        for c in emit_core(bm).findall("componentData/component")
-    ]
-    model_names = [
-        c.findtext("componentBasic/componentName")
-        for c in emit_model(bm).findall("componentData/component")
-    ]
-    assert core_names == model_names
+def test_model_has_no_component_data():
+    """Root cause of the silent JaNets hang (found by ProcMon + Jet lock-file
+    inspection): stub model/componentData records trigger a component-database
+    lookup that deadlocks against JaNets' own Jet connection, polling
+    DETEX_New.mdb every 5 s forever. Complete records are machine-authored and
+    unsynthesizable, so the ONLY correct generator behavior is omission - the
+    element must be absent entirely, not empty."""
+    root = emit_model(_bm())
+    assert root.find("componentData") is None
+    assert "componentData" not in _text(root)
+    # core still carries the real component records
+    core = emit_core(_bm())
+    assert len(core.findall("componentData/component")) == 3
 
 
 def test_model_omits_centering():

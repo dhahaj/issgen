@@ -1,55 +1,91 @@
-# Empirical JaNets Import Findings (2026-07-31)
+# Empirical JaNets Import Findings
 
-Condensed from ~20 hand-built ISS variants fed to a real JaNets installation.
-Supersedes the original brief wherever they conflict. JaNets fails by
-**hanging silently** — there is no error dialog, so none of this is
-discoverable at runtime.
+From ~20 hand-built ISS variants fed to a real JaNets installation
+(2026-07-31), followed by instrumented root-cause analysis (ProcMon, JaNets'
+own log, Jet lock-file inspection). JaNets fails by **hanging silently** — no
+dialog, no message — so none of this is discoverable at runtime.
+
+## Root cause of the hangs: `model/componentData` stubs
+
+**Never emit `model/componentData`. The element must be absent — not empty.**
+
+A stub record there (componentName, componentType, empty package,
+deliveryDate) makes JaNets look the part up in its component database, and
+that lookup deadlocks against JaNets' **own** Jet connection: the ISS parses
+to EOF fine, then `Framework.exe` polls a fixed 512-byte offset of
+`DETEX_New.mdb` (plus `Just.mdw`) every 5 seconds forever. The log shows
+`OpenFilePath Start` with no `End`. The `.ldb` lock file holds two slots, both
+local (`justware` + `admin`) — JaNets deadlocking with itself.
+
+| `model/componentData` | Result |
+|---|---|
+| absent | **opens** (~3 s) |
+| complete machine-authored records (~44 KB/part) | opens |
+| stub records | **hangs forever** |
+
+Complete records carry `pickCondition`/`placeCondition`/vision `centering`/
+`linkData`/`supplyCountData` that only the machine can produce — they are not
+synthesizable. Omission is the only correct generator behavior. The real
+component data (name, comment, size, connecterHeight) lives in
+`core/componentData`, which stays required.
+
+issgen enforces this three ways: the model emitter simply has no componentData
+path, the golden test asserts the element is absent, and the semantic linter
+flags any model component record lacking machine-authored `centering` data as
+a deadlock risk (CircuitCAM's centering-bearing records and JaNets' complete
+records are known to open and are not flagged).
 
 ## Hard constraint: `<tag />` needs the space
 
-The one clean single-variable result: two byte-identical files differing only
-in ` />` vs `/>` — the spaced one opens, the unspaced one hangs. JaNets' ISS
-reader is not a conforming XML parser. issgen enforces this at serialization
-time: `emit.document.assert_janets_safe()` runs on **every** emitted document
-and refuses to produce a file containing `[^ ]/>`.
+Byte-identical files differing only in ` />` vs `/>`: the spaced one opens,
+the unspaced one hangs. JaNets' ISS reader is not a conforming XML parser.
+`emit.document.assert_janets_safe()` runs on **every** emitted document and
+refuses to produce a file containing `[^ ]/>`.
 
-## Confirmed free choices
+## Confirmed free / confirmed safe
 
-BOM / no BOM, CRLF / LF / single line, indented / not — all combinations of a
-known-good file opened. issgen still emits BOM + CRLF + 2-space indent for
-readable diffs, but only the ` />` spacing is load-bearing.
+- BOM / no BOM, CRLF / LF / single line, indented / not — all combinations
+  open. issgen emits BOM + CRLF + 2-space indent for readable diffs.
+- Omitting `leadInformation` and `centering`.
+- Circuit-relative placement coordinates with positive allocations — the
+  coordinate convention issgen uses is **confirmed working**.
+- Component names JaNets cannot resolve (the file parses to EOF before any
+  lookup) — the DETEX gate is data-quality, not hang-prevention.
+- Omitting: `productionData`, `model/optimizeCondition`,
+  `model/areaBadMarkData`, `machine/pickData`, `machine/twoDCodeLearnData`,
+  `machine/codeAnalysisData`, `bocExtMark`, fiducial `markTeachingData`/
+  `TemplateLink`/`markId`/`solder`, core component extras (`moldline`,
+  `bossHeight`, `leadLength`, `packageCode`, `componentInspection`), core
+  placement extras (`placementOffset`, `station`, `headUnit`, `head`),
+  `pwbBasic` extras, `badMark`/`globalBadMark`, header extras
+  (`targetVersion`, `programMode`, `editVersion`, `headPick`, ...).
+- Omitting `lineConfiguration/configuration` → warning on open, not failure.
 
-## Confirmed safe
+## Retired theories (disproven by the trace — do not re-investigate)
 
-- Omitting `leadInformation` and `centering` (issgen never emits them).
-- Circuit-relative placement coordinates (small values straddling zero).
-- Component names JaNets cannot resolve — not a blocking lookup, so the DETEX
-  gate is data-quality, not hang-prevention.
-- Foreign panel geometry and foreign placements/components — each tested
-  **separately** against the known-good file.
+`pwbId` collisions; claiming the local line without a `configuration` block
+(warning only); missing `bocExtMark`; fiducial `markName` values, negative
+fiducial coordinates, `secondBocMark` `markType`; unresolvable component
+names; formatting beyond the ` />` rule; **the coordinate frame** (confirmed
+working — keep `--check` as a correctness guard, but it is not a hang risk).
 
-## Unresolved
+## Two component databases exist
 
-A hand-built synthetic file (the previous `golden_program.iss`) hangs, and a
-dozen single-variable mutations of it all hang too — multiple compounding
-causes or one systemic cause, not isolated. The untested pairing of
-geometry-swap **plus** placements-swap together is the leading candidate, and
-it maps onto the still-open coordinate-frame question.
+- `C:\ComponentDatabase\Data\DETEX_New.mdb` — what **JaNets** reads
+  (246 parts). issgen's scaffold default.
+- `C:\ComponentDatabase\Data\DETEX.mdb` — what **CircuitCAM** is configured
+  for (200 parts). Diverged from the other on 2026-06-11.
 
-**Consequences for issgen:**
+Same schema, same `PkgClass` table, and the verified example row
+(`101734-25` → 3.154/1.524/0.58 mm) agrees in both. Verify which holds the
+authoritative data before relying on either.
 
-- `tests/fixtures/golden_program.iss` is a **byte-regression pin only**. It is
-  NOT evidence of JaNets acceptance. (It has since been regenerated to follow
-  Program.iss conventions more closely — `markName` `#`, `NoUse` unused mark
-  group, attribute-less empty `<markPosition />` — but remains unvalidated
-  against a real import.)
-- Reference hierarchy: **`Program.iss` is the only import-confirmed file** and
-  is the structural authority. `102628_C7_NEW.iss` (JaNets-authored, never
-  round-tripped back in) is a reference for *value conventions* only
-  (`componentType` casing, `markType=NoUse` on unused groups, empty
-  `<markName />`/`<markPosition />` slots).
-- The coordinate frame is still open. `--check` stays report-only; no
-  automatic frame transform ships until a generated file for a
-  physically-validated board diffs clean against the file that produced good
-  boards (`issgen diff`, which compares placements, components, geometry, and
-  fiducials structurally).
+## Diagnosing a future hang
+
+1. `Get-Content "C:\JUKI\JaNets\Log\Juki.Iss.IntelliPE.ProgramEditor.log" -Tail 40`
+   — success shows paired `OpenFilePath Start`/`End` (~0.4–3 s apart); a
+   `Start` with no `End` means it is wedged inside the open routine.
+2. ProcMon filtered to `Framework.exe` — a repeating fixed-offset read on an
+   `.mdb` every ~5 s is a Jet lock poll.
+3. `Get-ChildItem C:\ComponentDatabase\Data\*.ldb -Force` — 64 bytes per
+   connection slot; read the machine/user names.

@@ -45,7 +45,9 @@ pnp:
   top_values: [TopLayer, Top, T]
 
 database:
-  path: 'C:\ComponentDatabase\Data\DETEX.mdb'
+  # DETEX_New.mdb is the database JaNets itself reads (DETEX.mdb is
+  # CircuitCAM's; they diverged 2026-06-11).
+  path: 'C:\ComponentDatabase\Data\DETEX_New.mdb'
   cache: null
 
 mapping:

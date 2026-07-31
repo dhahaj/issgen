@@ -92,7 +92,9 @@ pnp:
   top_values: [TopLayer, Top, T]
 
 database:
-  path: 'C:\\ComponentDatabase\\Data\\DETEX.mdb'
+  # DETEX_New.mdb is what JaNets itself reads; DETEX.mdb is CircuitCAM's copy
+  # (the two diverged 2026-06-11). Verify which holds the authoritative data.
+  path: 'C:\\ComponentDatabase\\Data\\DETEX_New.mdb'
   cache: null                 # parts.json snapshot (issgen dbcache) - no Access driver needed
 
 mapping:

@@ -79,11 +79,16 @@ Run `issgen init` for the commented scaffold. Key points:
 
 ## Known conventions (do not "fix")
 
+- **`model/componentData` is never emitted — absence is load-bearing.** Stub
+  records there deadlock JaNets against its own component-database connection
+  (silent, permanent hang; root-caused with ProcMon and Jet lock files — see
+  [docs/janets-import-findings.md](docs/janets-import-findings.md)). Complete
+  records are machine-authored and unsynthesizable. Real component data lives
+  in `core/componentData`.
 - **`<tag />` — the space before the slash is load-bearing.** JaNets hangs
   silently on `<tag/>` (proven with byte-identical files differing only in
-  that space — see [docs/janets-import-findings.md](docs/janets-import-findings.md)).
-  The serializer asserts this on every emitted document and refuses to write a
-  violating file.
+  that space). The serializer asserts this on every emitted document and
+  refuses to write a violating file.
 - `witdh`, `connecterHeight`, `TemplateLink` are **Juki's own spelling**, taken
   from their XSD. Tests assert `witdh` stays misspelled.
 - Output is UTF-8 **with BOM**, CRLF, 2-space indent. Empirically BOM, line
@@ -91,9 +96,12 @@ Run `issgen init` for the commented scaffold. Key points:
   constraint — but JaNets house style keeps diffs readable.
 - DETEX stores dimensions in 0.1 µm; issgen divides by 10000 (exact, Decimal
   end-to-end — no float noise, no CircuitCAM 1 µin artifacts).
-- `componentType` comes from `PkgClass.EngClass` joined on `PkgClassID`.
-  Placing a part whose `PkgClassID` is NULL is an error (7 such placeholder
-  parts exist in the database).
+- **Two component databases exist**: `DETEX_New.mdb` is what JaNets reads
+  (246 parts, issgen's default); `DETEX.mdb` is CircuitCAM's (200 parts).
+  They diverged 2026-06-11 — verify which is authoritative.
+- `componentType` (`PkgClass.EngClass`) is kept for `issgen parts` reporting
+  but is never emitted, since it only ever appeared in the prohibited
+  `model/componentData`.
 - The bundled `iss_schema_0.xsd` was reconstructed from an old
   AegisMachines.dll; newer JaNets revisions add elements it never knew.
   `issgen validate` reports those separately as version drift, not as errors.
@@ -102,23 +110,24 @@ Run `issgen init` for the commented scaffold. Key points:
 
 ## Reference hierarchy (revised per empirical import testing)
 
-- **`tests/fixtures/Program.iss`** (CircuitCAM) — the ONLY file confirmed to
-  import into JaNets. Structural authority; issgen targets its shape.
-- **`tests/fixtures/102628_C7_NEW.iss`** (JaNets-authored) — never
-  round-tripped back into JaNets, so it is a reference for *value conventions*
-  only (componentType casing, `NoUse` unused mark groups, empty mark slots).
+- **issgen's own output shape is import-confirmed**: a generated 24-placement
+  / 17-component file in exactly this structure (after removing the
+  now-prohibited `model/componentData`) opens in ~3 s. The historical hang was
+  root-caused to stub `model/componentData` records — see
+  [docs/janets-import-findings.md](docs/janets-import-findings.md).
+- **`tests/fixtures/Program.iss`** (CircuitCAM) — the original import-confirmed
+  reference and structural baseline.
+- **`tests/fixtures/102628_C7_NEW.iss`** (JaNets-authored) — reference for
+  value conventions (componentType casing, `NoUse` unused mark groups, empty
+  mark slots); never itself round-tripped back in.
 - **`tests/fixtures/golden_program.iss`** — byte-regression pin for the test
-  suite ONLY. An earlier revision of it **hangs a real JaNets** for reasons
-  not yet isolated; do not treat it as evidence of machine acceptance.
-
-Full findings: [docs/janets-import-findings.md](docs/janets-import-findings.md).
+  suite; regenerated in the confirmed-good shape.
 
 ## Rollout
 
-Do **not** switch production over on day one. The coordinate frame question is
-still open — foreign geometry and foreign placements each import fine
-*separately*, but the combination was never tested and is the lead suspect in
-the unresolved synthetic-file hang.
+Do **not** switch production over on day one. The circuit-relative coordinate
+convention is confirmed to *import*; what remains unproven is placement
+accuracy on a physical panel.
 
 1. Generate the same board with issgen and with CircuitCAM; run
    `issgen diff issgen.iss circuitcam.iss` (placements, components, geometry,

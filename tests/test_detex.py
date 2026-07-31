@@ -8,7 +8,10 @@ from issgen.sources.detex import DetexError, _row_to_part, get_parts, load_cache
 from issgen.config.panel import DatabaseSection
 
 FIX = Path(__file__).parent / "fixtures"
+# DETEX.mdb = CircuitCAM's database; DETEX_New.mdb = the one JaNets reads.
+# They diverged 2026-06-11 but agree on the verified example row.
 LIVE_MDB = Path(r"C:\ComponentDatabase\Data\DETEX.mdb")
+LIVE_MDB_NEW = Path(r"C:\ComponentDatabase\Data\DETEX_New.mdb")
 
 
 def test_load_cache():
@@ -60,15 +63,16 @@ def test_cache_bad_format_rejected(tmp_path):
 
 
 @pytest.mark.livedb
-def test_live_mdb_matches_known_row():
+@pytest.mark.parametrize("mdb", [LIVE_MDB, LIVE_MDB_NEW], ids=["DETEX", "DETEX_New"])
+def test_live_mdb_matches_known_row(mdb):
     pyodbc = pytest.importorskip("pyodbc")
-    if not LIVE_MDB.exists():
-        pytest.skip("DETEX.mdb not present")
+    if not mdb.exists():
+        pytest.skip(f"{mdb.name} not present")
     if not any("Access" in d for d in pyodbc.drivers()):
         pytest.skip("no Access ODBC driver")
     from issgen.sources.detex import load_mdb
 
-    parts = load_mdb(LIVE_MDB)
+    parts = load_mdb(mdb)
     assert len(parts) > 100
     p = parts["101734-25"]
     assert (p.witdh, p.length, p.height) == (

@@ -72,15 +72,18 @@ def test_build_model_mapping_explicit_wins():
     assert bm.placements[0].component == "101734-25"
 
 
-def test_build_model_placed_null_type_rejected():
+def test_build_model_null_component_type_is_placeable():
+    """componentType is never emitted (model/componentData is prohibited), so
+    the 7 NULL-PkgClassID parts in the live DB are placeable like any other."""
     cfg = load_panel(FIX / "sample_panel.yaml")
     rows = read_pnp(FIX / "sample_pnp.csv", cfg.pnp)
     parts = load_cache(FIX / "parts_cache.json")
     parts["PP-5922-26"] = parts["PP-5922-26"].__class__(
         **{**parts["PP-5922-26"].__dict__, "component_type": None}
     )
-    with pytest.raises(MissingPartError, match="PkgClass|componentType"):
-        make_build_model(cfg, rows, parts, timestamp=TS)
+    bm = make_build_model(cfg, rows, parts, timestamp=TS)
+    assert bm.warnings == []
+    assert bm.components[0].part.witdh == Decimal("3.2")  # real geometry kept
 
 
 # --- header --------------------------------------------------------------

@@ -1,8 +1,13 @@
-"""model section emitter.
+"""model section emitter: pwbData and placementData ONLY.
 
-Deliberate omissions vs. CircuitCAM output: no ``centering`` (its version was
-fabricated - wrong element names one level too shallow, plus the STAMDARD
-typo; the element is optional) and nothing JaNets teaches on the machine.
+``model/componentData`` is NEVER emitted. Empirically (ProcMon + JaNets log +
+Jet lock-file inspection): stub component records there make JaNets look the
+part up in its component database, and that lookup deadlocks against JaNets'
+own Jet connection - the file parses to EOF, then Framework.exe polls
+DETEX_New.mdb at a fixed offset every 5 s forever. Complete records carry
+machine-authored pick/place/vision data that cannot be synthesized, so
+omission (element absent, not empty) is the only correct option. The real
+component data lives in core/componentData.
 """
 from lxml import etree
 
@@ -56,15 +61,6 @@ def emit_model(bm: BuildModel) -> etree._Element:
         attr = etree.SubElement(el, "attribute")
         etree.SubElement(attr, "action", placement="PLACE", adhesive="NOADHESIVE")
 
-    cd = etree.SubElement(model, "componentData")
-    for i, c in enumerate(bm.components):
-        el = etree.SubElement(cd, "component", index=str(i))
-        basic = etree.SubElement(el, "componentBasic")
-        etree.SubElement(basic, "componentName").text = c.part.name
-        etree.SubElement(basic, "componentType").text = c.part.component_type
-        pkg = etree.SubElement(el, "packageData")
-        etree.SubElement(pkg, "package")
-        etree.SubElement(el, "deliveryDate").text = "0001-01-01T00:00:00"
-
+    # model/componentData deliberately absent - see module docstring.
     etree.SubElement(model, "userBallPatternData")
     return model

@@ -43,8 +43,12 @@ def test_build_matches_golden(tmp_path):
 
 
 def test_golden_content_invariants():
-    text = (FIX / "golden_program.iss").read_bytes().decode("utf-8-sig")
+    import re
+
+    from lxml import etree
+
     data = (FIX / "golden_program.iss").read_bytes()
+    text = data.decode("utf-8-sig")
     assert data.startswith(b"\xef\xbb\xbf")
     assert "witdh=" in text
     assert "width=" not in text
@@ -55,6 +59,11 @@ def test_golden_content_invariants():
     assert '<fiducialMark index="-1"' not in text
     assert "bocExtMark" not in text
     assert "\r\n" in text
+    # JaNets hard constraints, empirically established:
+    assert re.search(r"[^ ]/>", text) is None  # unspaced /> hangs JaNets
+    root = etree.fromstring(data)
+    assert root.find("model/componentData") is None  # stub records deadlock
+    assert len(root.findall("core/componentData/component")) == 3
 
 
 def test_build_check_writes_nothing(tmp_path):

@@ -78,16 +78,28 @@ def check_semantics(root: etree._Element) -> list[str]:
         ]
         if core_pl != model_pl:
             findings.append("core/model placement sequences differ")
+        # Stub model/componentData records (no machine-authored centering
+        # data) make JaNets look the part up in its component database and
+        # deadlock against its own Jet connection - a silent, permanent hang.
+        # Machine-authored complete records and CircuitCAM's centering-bearing
+        # records are known to open; issgen itself emits no model
+        # componentData at all.
+        stubs = [
+            c.findtext("componentBasic/componentName")
+            for c in model.findall("componentData/component")
+            if c.find("centering") is None
+        ]
+        if stubs:
+            findings.append(
+                "model/componentData contains stub record(s) "
+                f"({', '.join(stubs[:5])}{'...' if len(stubs) > 5 else ''}) - "
+                "these deadlock JaNets against its component database; "
+                "generated files must omit model/componentData entirely"
+            )
         core_cn = [
             c.findtext("componentBasic/componentName")
             for c in core.findall("componentData/component")
         ]
-        model_cn = [
-            c.findtext("componentBasic/componentName")
-            for c in model.findall("componentData/component")
-        ]
-        if core_cn != model_cn:
-            findings.append("core/model component sequences differ")
         known = set(core_cn)
         for p in core.findall("placementData/placement"):
             name = p.findtext("componentName")
