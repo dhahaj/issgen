@@ -100,7 +100,7 @@ def _component_data(bm: BuildModel) -> etree._Element:
         etree.SubElement(
             basic,
             "componentSize",
-            witdh=fmt(c.part.witdh),  # Juki's spelling — do not "correct"
+            witdh=fmt(c.part.witdh),  # Juki's spelling - do not "correct"
             length=fmt(c.part.length),
             height=fmt(c.part.height),
         )

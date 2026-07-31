@@ -1,7 +1,7 @@
 """model section emitter.
 
 Deliberate omissions vs. CircuitCAM output: no ``centering`` (its version was
-fabricated — wrong element names one level too shallow, plus the STAMDARD
+fabricated - wrong element names one level too shallow, plus the STAMDARD
 typo; the element is optional) and nothing JaNets teaches on the machine.
 """
 from lxml import etree

@@ -4,22 +4,22 @@ iss_schema_0.xsd was rebuilt by reflecting over a .NET assembly
 (AegisMachines.dll, an OLD program-format revision) and re-exporting. Two
 consequences shape this module:
 
-1. Attribute optionality was lost — every attribute became use="required".
+1. Attribute optionality was lost - every attribute became use="required".
    A "required attribute missing" claim from this schema is therefore
    categorically unreliable and is always dropped. Machine-critical attribute
    presence is covered by the semantic checks and the emitters themselves.
 2. Newer JaNets revisions write elements the reflected DLL never knew, either
    brand-new names (programMode, epv, ...) or known names in new places
-   (placement/placementOffset — the schema only knows placementOffset under
+   (placement/placementOffset - the schema only knows placementOffset under
    visionControl). "This element is not expected" errors are classified
    against the schema's (parent, child) containment pairs: a pair the schema
-   never declared is version drift, reported on a separate channel — it means
+   never declared is version drift, reported on a separate channel - it means
    "schema too old", not "file malformed". For issgen's own output (built
    strictly from the old vocabulary) any drift note is a real bug, so build
    treats both channels as fatal.
 
 Also filtered: the leadLackedData/leadNumber sequencing artifact, and
-ordering complaints among the bocMark/secondBocMark/bocExtMark siblings —
+ordering complaints among the bocMark/secondBocMark/bocExtMark siblings -
 JaNets itself orders them differently than the reflected sequence.
 """
 import re
@@ -113,7 +113,7 @@ def validate_document(data: bytes, xsd_path=None) -> tuple[list[str], list[str]]
             continue
         ua = _UNKNOWN_ATTR.search(err.message)
         if ua:
-            # An attribute the old schema never declared — newer revision.
+            # An attribute the old schema never declared - newer revision.
             drift.append(
                 f"line {err.line}: attribute {ua.group(2)!r} on "
                 f"<{ua.group(1)}> unknown to schema"

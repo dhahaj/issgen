@@ -3,7 +3,7 @@
 Column names come from ``pnp.columns`` in the panel YAML (Altium export
 templates vary). Values are Decimal; a ``mm``/``mil`` suffix inside a value
 overrides the configured units for that value. Rotation is normalized to
-[0, 360) and passed through otherwise — Altium is CCW-positive, matching the
+[0, 360) and passed through otherwise - Altium is CCW-positive, matching the
 convention observed in JaNets programs.
 """
 import csv

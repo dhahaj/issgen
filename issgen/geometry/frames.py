@@ -1,6 +1,6 @@
 """Coordinate-frame handling.
 
-In both supported frames, v1 emits placement coordinates unchanged — the JaNets
+In both supported frames, v1 emits placement coordinates unchanged - the JaNets
 convention carries CAD coordinates straight into ``placementPosition`` and
 relates them to the machine via ``circuitLayoutOffset`` (model section). The
 ``frame`` setting changes what --check tests containment against, not the

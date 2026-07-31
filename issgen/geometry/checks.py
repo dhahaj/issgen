@@ -1,7 +1,7 @@
 """Containment and consistency analysis behind --check.
 
 This is where a coordinate-frame mistake gets caught before it reaches the
-machine. Pure computation — rendering lives in issgen.report.
+machine. Pure computation - rendering lives in issgen.report.
 """
 from dataclasses import dataclass
 from decimal import Decimal
@@ -35,17 +35,31 @@ class CheckReport:
 
 
 def _sign_pattern(values: list[Decimal]) -> str:
-    if all(v >= 0 for v in values):
+    """Sign of the allocation offsets, ignoring teaching noise around zero
+    (JaNets-taught grids carry values like -0.0397 that are noise, not a
+    negative-offset convention like CircuitCAM's)."""
+    if all(v >= -GRID_TOLERANCE_MM for v in values):
         return "+"
-    if all(v <= 0 for v in values):
+    if all(v <= GRID_TOLERANCE_MM for v in values):
         return "-"
-    return "±"
+    return "+/-"
+
+
+def _cluster_means(values: list[Decimal]) -> list[Decimal]:
+    """Collapse values that differ only by teaching noise into one grid line."""
+    clusters: list[list[Decimal]] = []
+    for v in sorted(set(values)):
+        if clusters and v - clusters[-1][0] <= GRID_TOLERANCE_MM:
+            clusters[-1].append(v)
+        else:
+            clusters.append([v])
+    return [sum(c) / len(c) for c in clusters]
 
 
 def _spacings_consistent(values: list[Decimal]) -> bool:
-    """Do the sorted unique coordinates form an even spacing?"""
-    unique = sorted(set(values))
-    diffs = [b - a for a, b in zip(unique, unique[1:])]
+    """Do the grid lines (clustered against teaching noise) space evenly?"""
+    lines = _cluster_means(values)
+    diffs = [b - a for a, b in zip(lines, lines[1:])]
     if len(diffs) < 2:
         return True
     return max(diffs) - min(diffs) <= GRID_TOLERANCE_MM

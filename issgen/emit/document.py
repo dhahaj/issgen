@@ -1,4 +1,4 @@
-"""ISS byte-format layer: Decimal→string and lxml tree→JaNets-style bytes.
+"""ISS byte-format layer: Decimal->string and lxml tree->JaNets-style bytes.
 
 JaNets writes UTF-8 with BOM, CRLF line endings, 2-space indentation,
 self-closing tags as ``<tag />`` (space before the slash), and no trailing
@@ -20,7 +20,7 @@ def fmt(value: Decimal | int) -> str:
 
 
 def serialize(root: etree._Element) -> bytes:
-    # The "/>" → " />" rewrite below is textual; an attribute value containing
+    # The "/>" -> " />" rewrite below is textual; an attribute value containing
     # "/>" (lxml does not escape ">" in attributes) would be corrupted by it.
     for el in root.iter():
         for v in el.attrib.values():

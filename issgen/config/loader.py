@@ -32,7 +32,7 @@ def load_panel(path: Path | str) -> PanelConfig:
 
 
 SCAFFOLD = """\
-# issgen panel definition — edit every value marked CHANGEME.
+# issgen panel definition - edit every value marked CHANGEME.
 # Coordinates are millimetres unless noted.
 
 panel:
@@ -59,7 +59,7 @@ circuit:
   # allocations:              # alternative to array (mutually exclusive)
   #   - {x: 0, y: 0, angle: 0}
 
-# MAXIMUM THREE — the Juki mark group has exactly 3 slots. A fourth fiducial
+# MAXIMUM THREE - the Juki mark group has exactly 3 slots. A fourth fiducial
 # is a config error (CircuitCAM's 4-fiducial overflow corrupted programs).
 fiducials:
   - {name: F1, x: -8.7699, y: -31.5498}
@@ -80,7 +80,7 @@ frame: circuit_relative
 
 pnp:
   units: mm                   # mm | mil (unit suffixes inside values also honored)
-  side: top                   # top | bottom (bottom is UNTESTED — see README)
+  side: top                   # top | bottom (bottom is UNTESTED - see README)
   columns:                    # map to your Altium export's header names
     designator: Designator
     x: Center-X(mm)
@@ -93,7 +93,7 @@ pnp:
 
 database:
   path: 'C:\\ComponentDatabase\\Data\\DETEX.mdb'
-  cache: null                 # parts.json snapshot (issgen dbcache) — no Access driver needed
+  cache: null                 # parts.json snapshot (issgen dbcache) - no Access driver needed
 
 mapping:
   # Resolution order: explicit[designator] > by_footprint > by_designator_prefix > part_field column

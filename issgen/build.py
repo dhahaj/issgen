@@ -55,7 +55,7 @@ def resolve_component(row: PnpRow, cfg: PanelConfig) -> str:
     if not value:
         raise MissingPartError(
             f"{row.designator}: no mapping matched and the {m.part_field!r} "
-            "column is empty — add it to mapping.explicit"
+            "column is empty - add it to mapping.explicit"
         )
     return value
 
@@ -94,7 +94,7 @@ def make_build_model(
     untyped = [n for n in order if n in parts and parts[n].component_type is None]
     if missing or untyped:
         problems = [f"{n}: not in component database" for n in missing] + [
-            f"{n}: NULL PkgClassID in DETEX — componentType unknown" for n in untyped
+            f"{n}: NULL PkgClassID in DETEX - componentType unknown" for n in untyped
         ]
         if not allow_missing:
             raise MissingPartError(
@@ -112,7 +112,7 @@ def make_build_model(
 
     if cfg.pnp.side == "bottom":
         warnings.append(
-            "bottom-side output is UNTESTED on a real board — first-article "
+            "bottom-side output is UNTESTED on a real board - first-article "
             "inspect before trusting"
         )
 

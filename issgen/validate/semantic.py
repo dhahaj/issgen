@@ -1,6 +1,6 @@
 """Semantic checks the XSD cannot express (its facets were stripped).
 
-These encode the machine's real constraints — most importantly the three-slot
+These encode the machine's real constraints - most importantly the three-slot
 fiducial group that CircuitCAM overflowed for years.
 """
 from lxml import etree
@@ -109,7 +109,7 @@ def check_semantics(root: etree._Element) -> list[str]:
         for size in core.iter("componentSize"):
             if "witdh" not in size.attrib:
                 findings.append(
-                    "componentSize without 'witdh' attribute — someone fixed "
+                    "componentSize without 'witdh' attribute - someone fixed "
                     "Juki's spelling; the machine expects 'witdh'"
                 )
     return findings

@@ -5,7 +5,7 @@ effectiveCount saying how many are real. CircuitCAM's four-fiducial overflow
 (index="4" / index="-1") is the historical import-failure cause; the config
 layer already guarantees at most 3 marks, and this module always writes
 exactly the three legal slots. bocExtMark carries machine-taught vision data
-that cannot be synthesized — never emitted.
+that cannot be synthesized - never emitted.
 """
 from lxml import etree
 

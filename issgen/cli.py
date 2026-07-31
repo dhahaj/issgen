@@ -110,7 +110,7 @@ def validate(iss_file, schema):
     if drift:
         click.echo(
             f"note: {len(drift)} element(s) unknown to the reconstructed "
-            "schema (newer program-format revision) — not counted as errors"
+            "schema (newer program-format revision) - not counted as errors"
         )
     if findings:
         _fail(Exception(f"{iss_file}: {len(findings)} finding(s)"))

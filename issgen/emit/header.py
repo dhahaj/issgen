@@ -1,4 +1,4 @@
-"""headerData emitter — the minimal shape Program.iss proved sufficient."""
+"""headerData emitter - the minimal shape Program.iss proved sufficient."""
 from lxml import etree
 
 from issgen.build import BuildModel

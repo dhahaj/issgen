@@ -146,6 +146,17 @@ def test_checks_panel_absolute_frame():
     assert report.ok  # panel_absolute: only fits_panel matters
 
 
+def test_checks_taught_grid_tolerates_teaching_noise():
+    """The JaNets-taught 4x3 grid carries deviations up to ~0.2 mm from ideal
+    (including one barely-negative y of -0.0397). That is noise, not a layout
+    error or a sign convention — the check must stay green."""
+    cfg = load_panel(FIX / "roundtrip_panel.yaml")
+    report = run_checks([_row("2.4599", "-5.5812", "90", "R7")], cfg)
+    assert report.grid_consistent
+    assert report.alloc_sign_pattern == "x:+ y:+"
+    assert report.ok
+
+
 def test_checks_explicit_allocation_grid_consistency():
     raw = yaml.safe_load((FIX / "sample_panel.yaml").read_text())
     raw["circuit"]["array"] = None

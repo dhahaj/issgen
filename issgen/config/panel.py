@@ -1,6 +1,6 @@
 """Pydantic models for the panel definition YAML.
 
-All numeric geometry is ``Decimal`` — YAML floats are routed through ``str()``
+All numeric geometry is ``Decimal`` - YAML floats are routed through ``str()``
 before ``Decimal`` so values like 270.26 never pick up binary-float noise.
 ``extra="forbid"`` everywhere so a typo'd key fails with its field path.
 """

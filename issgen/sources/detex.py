@@ -5,7 +5,7 @@ connection fails we explain the mismatch instead of surfacing the raw pyodbc
 stack trace, and point at the ``dbcache`` workflow which needs no driver.
 
 ``Compo`` stores dimensions in 0.1 µm units; divide by 10000 for mm (exact in
-Decimal — verified against CircuitCAM output byte-for-byte). ``componentType``
+Decimal - verified against CircuitCAM output byte-for-byte). ``componentType``
 is ``PkgClass.EngClass`` joined on PkgClassID; an unmapped ID is a hard error.
 """
 import json
@@ -60,7 +60,7 @@ def _row_to_part(
     if not eng_class and pkg_class_id is not None:
         raise DetexError(
             f"component {name!r} has PkgClassID {pkg_class_id!r} with no "
-            "PkgClass row — cannot derive componentType; fix the database "
+            "PkgClass row - cannot derive componentType; fix the database "
             "entry rather than guessing"
         )
     return Part(
@@ -169,6 +169,6 @@ def get_parts(cfg: DatabaseSection) -> dict[str, Part]:
     if cfg.cache:
         raise DetexError(
             f"parts cache {cfg.cache} does not exist and no database.path is "
-            "configured — run: issgen dbcache panel.yaml -o " + str(cfg.cache)
+            "configured - run: issgen dbcache panel.yaml -o " + str(cfg.cache)
         )
     raise DetexError("no component source: set database.path or database.cache")
