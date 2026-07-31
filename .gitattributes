@@ -1,0 +1,4 @@
+# ISS files and goldens are byte-exact test fixtures (UTF-8 BOM, CRLF). Never convert.
+*.iss -text
+*.xsd -text
+tests/fixtures/** -text
