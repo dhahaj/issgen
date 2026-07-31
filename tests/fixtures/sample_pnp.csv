@@ -1,0 +1,5 @@
+Designator,Comment,Footprint,Center-X(mm),Center-Y(mm),Rotation,Layer
+R7,PP-5922-26,RES1206,2.4599,-5.5812,90,TopLayer
+U1,102794-1,SOIC8,9.67,5.7907,180,TopLayer
+C2,"PP-5919-1",C1206,22.1396,-14.2977,90,TopLayer
+R99,PP-0000-1,RES0402,1.0,1.0,45,BottomLayer
