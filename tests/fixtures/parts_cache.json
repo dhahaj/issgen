@@ -1,0 +1,9 @@
+{
+  "format": "issgen-parts-v1",
+  "parts": {
+    "101734-25": {"comment": "CHIP RESISTOR, 2M, 1206 - CRCW12062M00FKEA", "witdh": "3.154", "length": "1.524", "height": "0.58", "connecter_height": "0", "component_type": "Chip"},
+    "PP-5922-26": {"comment": "RES 1206", "witdh": "3.2", "length": "1.6", "height": "0.6", "connecter_height": "0", "component_type": "Chip"},
+    "102794-1": {"comment": "IC SOIC8", "witdh": "5", "length": "4", "height": "1.5", "connecter_height": "0", "component_type": "SOP"},
+    "PP-5919-1": {"comment": "MLCC 100UF 50V X7R - C1206104KSRAC", "witdh": "3.03", "length": "1.56", "height": "0.59", "connecter_height": "0", "component_type": "Chip"}
+  }
+}
