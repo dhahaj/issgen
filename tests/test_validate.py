@@ -12,7 +12,7 @@ from issgen.emit.machine import emit_machine
 from issgen.emit.model import emit_model
 from issgen.sources.altium import read_pnp
 from issgen.sources.detex import load_cache
-from issgen.validate.schema import validate_bytes
+from issgen.validate.schema import validate_bytes, validate_document
 from issgen.validate.semantic import check_semantics
 
 FIX = Path(__file__).parent / "fixtures"
@@ -40,27 +40,20 @@ def test_generated_document_semantically_clean():
     assert check_semantics(root) == []
 
 
-def test_janets_findings_never_touch_issgen_vocabulary():
+def test_janets_reference_no_findings_only_drift():
     """The JaNets file is a NEWER program-format revision than the reflected
     DLL behind iss_schema_0.xsd, so hundreds of its elements (programMode,
-    placementOffset, conveyorLane, ...) are unknown to the schema. That is
-    fine — what makes the validator trustworthy for issgen output is that no
-    finding concerns an element issgen itself emits."""
+    placementOffset, conveyorLane, ...) are unknown to the schema. Those land
+    on the drift channel; the findings channel must be empty — and no drift
+    note may concern an element issgen itself emits."""
     import re
 
     emitted_tags = {el.tag for el in etree.fromstring(_generated()).iter()}
-    findings = validate_bytes((FIX / "102628_C7_NEW.iss").read_bytes())
-    assert findings  # schema genuinely predates the file's revision
-    for f in findings:
-        m = re.search(r"Element '([^']+)'", f)
-        assert m, f
-        # Known drift: JaNets orders the mark groups bocMark, bocExtMark,
-        # secondBocMark; the reflected schema declares secondBocMark before
-        # bocExtMark. issgen emits no bocExtMark, so both orders agree for
-        # generated output.
-        if m.group(1) == "secondBocMark" and "bocExtMark" in f:
-            continue
-        assert m.group(1) not in emitted_tags, f
+    findings, drift = validate_document((FIX / "102628_C7_NEW.iss").read_bytes())
+    assert findings == []
+    assert drift  # schema genuinely predates the file's revision
+    drifted = {re.search(r"(?:element|attribute .* on) <([^>/]+)>", d).group(1) for d in drift}
+    assert drifted.isdisjoint(emitted_tags)
 
 
 def test_janets_reference_semantically_clean():
