@@ -56,3 +56,21 @@ def test_serialize_rejects_slash_gt_in_attr():
     root.set("a", "x/>y")
     with pytest.raises(ValueError):
         serialize(root)
+
+
+def test_janets_safe_guard():
+    """The space before /> is a hard JaNets contract: byte-identical files
+    differing only in " />" vs "/>" open vs hang. The guard runs on every
+    serialized document."""
+    from issgen.emit.document import assert_janets_safe
+
+    assert_janets_safe('<a x="1" />\r\n<b />')  # fine
+    with pytest.raises(ValueError, match="hang"):
+        assert_janets_safe('<a x="1"/>')
+    # And every serialize() output must pass it end-to-end:
+    root = etree.Element("productionProgram")
+    etree.SubElement(root, "empty")
+    text = serialize(root).decode("utf-8-sig")
+    import re
+
+    assert re.search(r"[^ ]/>", text) is None

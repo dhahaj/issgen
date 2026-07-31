@@ -5,9 +5,25 @@ self-closing tags as ``<tag />`` (space before the slash), and no trailing
 newline after the root close tag. Numbers are bare integers when integral
 (``37``, ``0``) and otherwise decimals with trailing zeros stripped.
 """
+import re
 from decimal import Decimal
 
 from lxml import etree
+
+# JaNets' ISS reader hangs (no error, no dialog) on <tag/> without the space.
+# Empirically proven by a byte-identical pair differing only in " />" vs "/>".
+# This is a hard byte-level contract, so it is asserted on EVERY emitted
+# document, not just in tests.
+_UNSPACED_SELF_CLOSE = re.compile(r"[^ ]/>")
+
+
+def assert_janets_safe(text: str) -> None:
+    bad = _UNSPACED_SELF_CLOSE.findall(text)
+    if bad:
+        raise ValueError(
+            f"{len(bad)} self-closing tag(s) missing the required space "
+            'before "/>" - JaNets will hang on this file'
+        )
 
 
 def fmt(value: Decimal | int) -> str:
@@ -33,4 +49,5 @@ def serialize(root: etree._Element) -> bytes:
     body = etree.tostring(root, encoding="unicode")
     body = body.replace("/>", " />")
     text = '<?xml version="1.0" encoding="utf-8"?>\n' + body
+    assert_janets_safe(text)
     return b"\xef\xbb\xbf" + text.replace("\n", "\r\n").encode("utf-8")

@@ -183,6 +183,8 @@ def diff(file_a, file_b, tol):
         and not result.only_in_b
         and result.max_deviation <= Decimal(tol)
         and not result.mismatched_components
+        and not result.geometry_diffs
+        and not result.fiducial_diffs
     )
     sys.exit(0 if ok else 1)
 

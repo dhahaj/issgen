@@ -30,6 +30,8 @@ class DiffResult:
     only_in_b: list[str]
     deviations: list[Deviation]  # common designators with any difference
     mismatched_components: list[str] = field(default_factory=list)
+    geometry_diffs: list[str] = field(default_factory=list)
+    fiducial_diffs: list[str] = field(default_factory=list)
 
     @property
     def max_deviation(self) -> Decimal:
@@ -68,6 +70,51 @@ def _component_sizes(path: Path) -> dict[str, tuple[str, str, str]]:
     return out
 
 
+def _dec(el, attr) -> Decimal | None:
+    if el is None or el.get(attr) is None:
+        return None
+    return Decimal(el.get(attr))
+
+
+def _geometry(root: etree._Element) -> dict[str, object]:
+    pwb = root.find("core/pwbData/pwbConfiguration")
+    circuit = root.find(
+        "core/pwbData/circuitConfigurationData/circuitConfiguration[@index='0']"
+    )
+    allocs = (
+        [
+            (_dec(al, "x"), _dec(al, "y"), _dec(al, "angle"))
+            for al in circuit.findall("nonMatrix/allocation")
+        ]
+        if circuit is not None
+        else []
+    )
+    return {
+        "panel outline": (_dec(pwb.find("outline"), "x"), _dec(pwb.find("outline"), "y"))
+        if pwb is not None
+        else None,
+        "circuit outline": (
+            _dec(circuit.find("circuitOutline"), "x"),
+            _dec(circuit.find("circuitOutline"), "y"),
+        )
+        if circuit is not None
+        else None,
+        "allocations": allocs,
+    }
+
+
+def _fiducials(root: etree._Element) -> list[tuple[str, Decimal | None, Decimal | None]]:
+    out = []
+    for m in root.findall(
+        "machine/bocMarkData/circuitData/bocMark/fiducialMarkData/fiducialMark"
+    ):
+        name = m.findtext("markName") or ""
+        if name:
+            pos = m.find("markPosition")
+            out.append((name, _dec(pos, "x"), _dec(pos, "y")))
+    return out
+
+
 def diff_iss(a: Path, b: Path) -> DiffResult:
     pa, pb = _placements(a), _placements(b)
     common = sorted(pa.keys() & pb.keys())
@@ -93,11 +140,23 @@ def diff_iss(a: Path, b: Path) -> DiffResult:
         for name in sorted(sa.keys() & sb.keys())
         if sa[name] != sb[name]
     ]
+
+    root_a = etree.fromstring(Path(a).read_bytes())
+    root_b = etree.fromstring(Path(b).read_bytes())
+    ga, gb = _geometry(root_a), _geometry(root_b)
+    geometry_diffs = [
+        f"{key}: {ga[key]} != {gb[key]}" for key in ga if ga[key] != gb[key]
+    ]
+    fa, fb = _fiducials(root_a), _fiducials(root_b)
+    fiducial_diffs = [] if fa == fb else [f"fiducials: {fa} != {fb}"]
+
     return DiffResult(
         only_in_a=sorted(pa.keys() - pb.keys()),
         only_in_b=sorted(pb.keys() - pa.keys()),
         deviations=deviations,
         mismatched_components=mismatched,
+        geometry_diffs=geometry_diffs,
+        fiducial_diffs=fiducial_diffs,
     )
 
 
@@ -115,5 +174,7 @@ def render_diff(result: DiffResult) -> str:
             parts.append(f"component {d.component_a}->{d.component_b}")
         lines.append("  ".join(parts))
     lines.extend(result.mismatched_components)
+    lines.extend(result.geometry_diffs)
+    lines.extend(result.fiducial_diffs)
     lines.append(f"MAX DEVIATION: {fmt(result.max_deviation)} mm")
     return "\n".join(lines)

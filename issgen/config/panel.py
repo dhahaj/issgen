@@ -96,6 +96,9 @@ class Fiducial(Strict):
 class MachineSection(Strict):
     line_name: str = "Line"
     line_id: int = 1
+    # Group mark name. "#" is what Program.iss (the only file confirmed to
+    # import into JaNets) carries; JaNets itself authors "BOCMARK01".
+    boc_mark_name: str = "#"
     clamp_offset_y: Dec = Decimal(0)
     pwb_layout_offset: DecimalXY = Field(default_factory=_xy_zero)
     circuit_layout_offset: DecimalXY = Field(default_factory=_xy_zero)

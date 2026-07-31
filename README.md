@@ -79,10 +79,16 @@ Run `issgen init` for the commented scaffold. Key points:
 
 ## Known conventions (do not "fix")
 
+- **`<tag />` — the space before the slash is load-bearing.** JaNets hangs
+  silently on `<tag/>` (proven with byte-identical files differing only in
+  that space — see [docs/janets-import-findings.md](docs/janets-import-findings.md)).
+  The serializer asserts this on every emitted document and refuses to write a
+  violating file.
 - `witdh`, `connecterHeight`, `TemplateLink` are **Juki's own spelling**, taken
   from their XSD. Tests assert `witdh` stays misspelled.
-- Output is UTF-8 **with BOM**, CRLF, 2-space indent, `<tag />` with a space —
-  byte-for-byte JaNets house style.
+- Output is UTF-8 **with BOM**, CRLF, 2-space indent. Empirically BOM, line
+  endings, and indentation are free choices — only the ` />` spacing is a hard
+  constraint — but JaNets house style keeps diffs readable.
 - DETEX stores dimensions in 0.1 µm; issgen divides by 10000 (exact, Decimal
   end-to-end — no float noise, no CircuitCAM 1 µin artifacts).
 - `componentType` comes from `PkgClass.EngClass` joined on `PkgClassID`.
@@ -94,12 +100,29 @@ Run `issgen init` for the commented scaffold. Key points:
   Attribute-presence claims from the reconstruction are unreliable and ignored;
   machine constraints are enforced by dedicated semantic checks instead.
 
+## Reference hierarchy (revised per empirical import testing)
+
+- **`tests/fixtures/Program.iss`** (CircuitCAM) — the ONLY file confirmed to
+  import into JaNets. Structural authority; issgen targets its shape.
+- **`tests/fixtures/102628_C7_NEW.iss`** (JaNets-authored) — never
+  round-tripped back into JaNets, so it is a reference for *value conventions*
+  only (componentType casing, `NoUse` unused mark groups, empty mark slots).
+- **`tests/fixtures/golden_program.iss`** — byte-regression pin for the test
+  suite ONLY. An earlier revision of it **hangs a real JaNets** for reasons
+  not yet isolated; do not treat it as evidence of machine acceptance.
+
+Full findings: [docs/janets-import-findings.md](docs/janets-import-findings.md).
+
 ## Rollout
 
-Do **not** switch production over on day one.
+Do **not** switch production over on day one. The coordinate frame question is
+still open — foreign geometry and foreign placements each import fine
+*separately*, but the combination was never tested and is the lead suspect in
+the unresolved synthetic-file hang.
 
 1. Generate the same board with issgen and with CircuitCAM; run
-   `issgen diff issgen.iss circuitcam.iss` and reconcile every discrepancy.
+   `issgen diff issgen.iss circuitcam.iss` (placements, components, geometry,
+   and fiducials, formatting-independent) and reconcile every discrepancy.
 2. For a board that has already run well, diff against the ISS that actually
    produced good boards. Placement agreement within a few microns is the
    acceptance criterion (the JaNets round-trip test in this repo achieves 0).

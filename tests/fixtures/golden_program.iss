@@ -207,7 +207,7 @@
       <circuitData index="0">
         <bocMark no="1">
           <markType>BOC</markType>
-          <markName>BOCMARK01</markName>
+          <markName>#</markName>
           <solderType>standard</solderType>
           <effectiveCount count="3" />
           <fiducialMarkData>
@@ -226,22 +226,22 @@
           </fiducialMarkData>
         </bocMark>
         <secondBocMark no="1">
-          <markType>BOC</markType>
-          <markName>BOCMARK01</markName>
+          <markType>NoUse</markType>
+          <markName>#</markName>
           <solderType>standard</solderType>
           <effectiveCount count="0" />
           <fiducialMarkData>
             <fiducialMark index="0">
               <markName />
-              <markPosition x="0" y="0" />
+              <markPosition />
             </fiducialMark>
             <fiducialMark index="1">
               <markName />
-              <markPosition x="0" y="0" />
+              <markPosition />
             </fiducialMark>
             <fiducialMark index="2">
               <markName />
-              <markPosition x="0" y="0" />
+              <markPosition />
             </fiducialMark>
           </fiducialMarkData>
         </secondBocMark>

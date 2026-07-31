@@ -94,7 +94,8 @@ def test_machine_three_fiducials():
     boc = root.find("bocMarkData/circuitData/bocMark")
     assert boc.get("no") == "1"
     assert boc.findtext("markType") == "BOC"
-    assert boc.findtext("markName") == "BOCMARK01"
+    # "#" is Program.iss's value - the only file confirmed to import.
+    assert boc.findtext("markName") == "#"
     assert boc.findtext("solderType") == "standard"
     assert boc.find("effectiveCount").get("count") == "3"
     marks = boc.findall("fiducialMarkData/fiducialMark")
@@ -112,17 +113,22 @@ def test_machine_one_fiducial_pads_slots():
     assert [m.get("index") for m in marks] == ["0", "1", "2"]
     assert marks[0].findtext("markName") == "102605F1"
     assert not marks[1].findtext("markName")  # empty element ("" once parsed)
-    assert marks[1].find("markPosition").get("x") == "0"
+    # Empty slots carry attribute-less <markPosition /> - the form both
+    # reference files use for unused slots.
+    assert marks[1].find("markPosition").attrib == {}
 
 
 def test_machine_second_boc_empty():
     root = emit_machine(_bm(3))
     second = root.find("bocMarkData/circuitData/secondBocMark")
     assert second.get("no") == "1"
+    assert second.findtext("markType") == "NoUse"  # JaNets' unused-group value
+    assert second.findtext("markName") == "#"  # group name retained
     assert second.find("effectiveCount").get("count") == "0"
     marks = second.findall("fiducialMarkData/fiducialMark")
     assert [m.get("index") for m in marks] == ["0", "1", "2"]
     assert all(not m.findtext("markName") for m in marks)
+    assert all(m.find("markPosition").attrib == {} for m in marks)
 
 
 def test_machine_no_circuitcam_defects():

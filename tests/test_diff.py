@@ -48,6 +48,26 @@ def test_component_mismatch_reported(tmp_path):
     assert any("PP-5922-26" in m for m in result.mismatched_components)
 
 
+def test_geometry_diff_reported(tmp_path):
+    text = GOLDEN.read_bytes().decode("utf-8-sig")
+    mutated = text.replace('<outline x="270.26" y="169.418" />', '<outline x="270.26" y="170" />')
+    p = tmp_path / "b.iss"
+    p.write_bytes(b"\xef\xbb\xbf" + mutated.encode())
+    result = diff_iss(GOLDEN, p)
+    assert any("panel outline" in g for g in result.geometry_diffs)
+
+
+def test_fiducial_diff_reported(tmp_path):
+    text = GOLDEN.read_bytes().decode("utf-8-sig")
+    mutated = text.replace('x="-8.7699"', 'x="-8.7"')
+    p = tmp_path / "b.iss"
+    p.write_bytes(b"\xef\xbb\xbf" + mutated.encode())
+    result = diff_iss(GOLDEN, p)
+    assert result.fiducial_diffs
+    res = CliRunner().invoke(main, ["diff", str(GOLDEN), str(p)])
+    assert res.exit_code == 1
+
+
 def test_cli_diff_identical_ok():
     res = CliRunner().invoke(main, ["diff", str(GOLDEN), str(GOLDEN)])
     assert res.exit_code == 0, res.output
