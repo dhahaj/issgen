@@ -1,0 +1,141 @@
+{
+  "format": "issgen-parts-v1",
+  "parts": {
+    "PP-5919-1": {
+      "comment": "MLCC 100UF 50V X7R - C1206104KSRAC",
+      "witdh": "3.03",
+      "length": "1.56",
+      "height": "0.59",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5922-16": {
+      "comment": "",
+      "witdh": "3.04",
+      "length": "1.552",
+      "height": "0.5925",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5919-7": {
+      "comment": "",
+      "witdh": "3.122",
+      "length": "1.54",
+      "height": "0.8075",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5932-1": {
+      "comment": "DIODE SIGNAL (250mA)",
+      "witdh": "1.24",
+      "length": "2.89",
+      "height": "0.99",
+      "connecter_height": "0",
+      "component_type": "SOT"
+    },
+    "107516": {
+      "comment": "GREEN LED",
+      "witdh": "3.2",
+      "length": "2.4",
+      "height": "1.71",
+      "connecter_height": "0",
+      "component_type": "LEDCHIP"
+    },
+    "102135-1": {
+      "comment": "",
+      "witdh": "7.62",
+      "length": "3.429",
+      "height": "2.3368",
+      "connecter_height": "0",
+      "component_type": "SOP"
+    },
+    "102790-1": {
+      "comment": "",
+      "witdh": "1.82",
+      "length": "3.142",
+      "height": "1.0313",
+      "connecter_height": "0",
+      "component_type": "SOT"
+    },
+    "102794-1": {
+      "comment": "",
+      "witdh": "11.53",
+      "length": "9.56",
+      "height": "2.43",
+      "connecter_height": "0",
+      "component_type": "SOP"
+    },
+    "PP-5921-2": {
+      "comment": "",
+      "witdh": "3.022",
+      "length": "1.554",
+      "height": "0.5775",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5921-50": {
+      "comment": "",
+      "witdh": "3.032",
+      "length": "1.56",
+      "height": "0.59",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5921-6": {
+      "comment": "RESISTOR, 10KOHM 1% 1/4WATT, 1206",
+      "witdh": "3.2",
+      "length": "1.6",
+      "height": "0.6",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5922-26": {
+      "comment": "",
+      "witdh": "3.032",
+      "length": "1.56",
+      "height": "0.59",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5922-41": {
+      "comment": "",
+      "witdh": "3.032",
+      "length": "1.56",
+      "height": "0.59",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5922-44": {
+      "comment": "CHIP RES, 1206 SMD",
+      "witdh": "3.032",
+      "length": "1.56",
+      "height": "0.59",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5922-45": {
+      "comment": "",
+      "witdh": "3.032",
+      "length": "1.56",
+      "height": "0.59",
+      "connecter_height": "0",
+      "component_type": "CHIP"
+    },
+    "PP-5933-1": {
+      "comment": "NPN BIPOLAR TRANSISTOR, 2N222 SMD",
+      "witdh": "1.3",
+      "length": "2.9",
+      "height": "0.95",
+      "connecter_height": "0",
+      "component_type": "SOT"
+    },
+    "107517": {
+      "comment": "RED LED",
+      "witdh": "3.2",
+      "length": "2.4",
+      "height": "1.78",
+      "connecter_height": "0",
+      "component_type": "LEDCHIP"
+    }
+  }
+}

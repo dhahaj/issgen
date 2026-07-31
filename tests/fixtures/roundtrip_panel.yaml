@@ -1,0 +1,53 @@
+# Panel definition reconstructed from 102628_C7_NEW.iss (JaNets ground truth).
+# Allocations are the machine-taught values, not an ideal grid — extracted by
+# tests/tools/extract_from_iss.py.
+panel:
+  id: "102605"
+  outline: {x: 270.26, y: 169.418}
+  thickness: 1.6
+  back_height: 37
+  reference_side: FRONT
+  transfer_direction: LTOR
+
+circuit:
+  id: A
+  outline: {x: 65.6, y: 48.006}
+  origin: {x: 21.5392, y: 25.3873}
+  allocations:
+    - {x: 0.0402, y: 0.1396, angle: 0}
+    - {x: 0.0201, y: 96.2019, angle: 0}
+    - {x: 0.029, y: 48.2159, angle: 0}
+    - {x: 68.2091, y: 96.1519, angle: 0}
+    - {x: 68.2292, y: 48.116, angle: 0}
+    - {x: 68.2384, y: 0.13, angle: 0}
+    - {x: 136.3977, y: 96.1117, angle: 0}
+    - {x: 136.398, y: 48.006, angle: 0}
+    - {x: 136.4381, y: 0.0599, angle: 0}
+    - {x: 204.597, y: 96.012, angle: 0}
+    - {x: 204.597, y: 48.0061, angle: 0}
+    - {x: 204.6366, y: -0.0397, angle: 0}
+
+fiducials:
+  - {name: 102605F1, x: -8.7699, y: -31.5498}
+  - {name: 102605F2, x: 236.066, y: -31.7798}
+  - {name: 102605F3, x: 236.026, y: 124.988}
+
+machine:
+  line_name: Line
+  line_id: 1
+  clamp_offset_y: 84.709
+  pwb_layout_offset: {x: 248.7168, y: -38.0873}
+  circuit_layout_offset: {x: -21.5392, y: -25.3873}
+
+frame: circuit_relative
+
+pnp:
+  units: mm
+  side: top
+
+database:
+  path: null
+  cache: null   # supplied via --db-cache roundtrip_parts.json
+
+mapping:
+  part_field: comment
