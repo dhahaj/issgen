@@ -12,9 +12,16 @@ from pydantic import (
     BeforeValidator,
     ConfigDict,
     Field,
+    PrivateAttr,
     field_validator,
     model_validator,
 )
+
+# pwb_layout_offset.y sits this far below the CAD origin in both reference
+# programs - 12.7 mm (0.5 in), presumably a rail/clamp edge reference. The
+# physical meaning on the line is unconfirmed; machines with a different
+# geometry should set machine.pwb_layout_offset explicitly.
+PWB_LAYOUT_Y_MARGIN_MM = Decimal("12.7")
 
 
 def _to_decimal(v: object) -> Decimal:
@@ -99,9 +106,12 @@ class MachineSection(Strict):
     # Group mark name. "#" is what Program.iss (the only file confirmed to
     # import into JaNets) carries; JaNets itself authors "BOCMARK01".
     boc_mark_name: str = "#"
-    clamp_offset_y: Dec = Decimal(0)
-    pwb_layout_offset: DecimalXY = Field(default_factory=_xy_zero)
-    circuit_layout_offset: DecimalXY = Field(default_factory=_xy_zero)
+    # The three offsets are usually geometric, not machine-taught (per the
+    # operator). None = derive from panel/circuit geometry; set explicitly to
+    # carry taught values instead. Derivation happens in PanelConfig.
+    clamp_offset_y: Dec | None = None
+    pwb_layout_offset: DecimalXY | None = None
+    circuit_layout_offset: DecimalXY | None = None
 
 
 class PnpColumns(Strict):
@@ -145,6 +155,40 @@ class PanelConfig(Strict):
     pnp: PnpSection = Field(default_factory=PnpSection)
     database: DatabaseSection = Field(default_factory=DatabaseSection)
     mapping: MappingSection = Field(default_factory=MappingSection)
+
+    _derived_machine: dict[str, str] = PrivateAttr(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _derive_machine_offsets(self) -> "PanelConfig":
+        """Fill omitted machine offsets from panel/circuit geometry.
+
+        Relationships verified against the reference programs:
+        - circuit_layout_offset = -circuit.origin (exact; same information)
+        - clamp_offset_y = panel.outline.y / 2 (exact in both files)
+        - pwb_layout_offset = (outline.x - origin.x, -(origin.y + 12.7))
+          (nominal; the JaNets taught x was 4 um off this)
+        """
+        m, org = self.machine, self.circuit.origin
+        if m.clamp_offset_y is None:
+            m.clamp_offset_y = self.panel.outline.y / 2
+            self._derived_machine["clamp_offset_y"] = "panel.outline.y / 2"
+        if m.circuit_layout_offset is None:
+            m.circuit_layout_offset = DecimalXY(x=-org.x, y=-org.y)
+            self._derived_machine["circuit_layout_offset"] = "-circuit.origin"
+        if m.pwb_layout_offset is None:
+            m.pwb_layout_offset = DecimalXY(
+                x=self.panel.outline.x - org.x,
+                y=-(org.y + PWB_LAYOUT_Y_MARGIN_MM),
+            )
+            self._derived_machine["pwb_layout_offset"] = (
+                "(panel.outline.x - origin.x, -(origin.y + 12.7))"
+            )
+        return self
+
+    @property
+    def derived_machine(self) -> dict[str, str]:
+        """Machine offsets that were derived rather than given: name -> formula."""
+        return dict(self._derived_machine)
 
     @field_validator("fiducials")
     @classmethod

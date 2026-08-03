@@ -69,6 +69,15 @@ Run `issgen init` for the commented scaffold. Key points:
 - **`circuit.array`** generates an ideal allocation grid (`row_major`,
   `column_major`, or `serpentine`); **`circuit.allocations`** instead takes an
   explicit list (e.g. machine-taught values). Exactly one of the two.
+- **`machine` offsets are derived when omitted** (they're geometric on this
+  line, not usually taught): `clamp_offset_y = panel.outline.y / 2`,
+  `circuit_layout_offset = -circuit.origin`, and
+  `pwb_layout_offset = (outline.x - origin.x, -(origin.y + 12.7))` — the
+  12.7 mm (0.5 in) y-margin matches both reference programs but its physical
+  meaning is unconfirmed. Derived values are printed by `build` and `--check`
+  so they never enter a file invisibly; set any offset explicitly to carry a
+  machine-taught value instead (the JaNets reference's taught
+  `pwb_layout_offset.x` sits 4 µm off the nominal).
 - **`pnp.columns`** maps your Altium export's header names; units are `mm` or
   `mil` (a `mm`/`mil` suffix inside a value overrides). `pnp.side: bottom`
   mirrors across the panel X axis and is **UNTESTED on a real board** — the

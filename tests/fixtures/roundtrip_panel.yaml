@@ -35,6 +35,9 @@ fiducials:
 machine:
   line_name: Line
   line_id: 1
+  # Explicit because the round-trip must reproduce the file byte-for-byte:
+  # pwb_layout_offset.x here is the machine's value, 4 um off the derived
+  # nominal (248.7208). The other two happen to equal their derivations.
   clamp_offset_y: 84.709
   pwb_layout_offset: {x: 248.7168, y: -38.0873}
   circuit_layout_offset: {x: -21.5392, y: -25.3873}

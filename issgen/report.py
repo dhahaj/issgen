@@ -1,7 +1,21 @@
 """Human-readable rendering of the --check analysis."""
-from issgen.config.panel import PanelConfig
+from issgen.config.panel import DecimalXY, PanelConfig
 from issgen.emit.document import fmt
 from issgen.geometry.checks import CheckReport
+
+
+def derived_machine_notes(cfg: PanelConfig) -> list[str]:
+    """One line per machine offset that was derived from geometry rather than
+    given in the YAML - visible so a wrong derivation can't hide."""
+    notes = []
+    for field, formula in cfg.derived_machine.items():
+        value = getattr(cfg.machine, field)
+        if isinstance(value, DecimalXY):
+            shown = f"({fmt(value.x)}, {fmt(value.y)})"
+        else:
+            shown = fmt(value)
+        notes.append(f"machine.{field} = {shown}  [derived: {formula}]")
+    return notes
 
 
 def render_report(report: CheckReport, cfg: PanelConfig) -> str:
@@ -11,6 +25,8 @@ def render_report(report: CheckReport, cfg: PanelConfig) -> str:
     add = lines.append
 
     add(f"frame: {report.frame}")
+    for note in derived_machine_notes(cfg):
+        add(note)
     add(
         f"placement bbox (emitted coords): x {fmt(lo_x)} .. {fmt(hi_x)}, "
         f"y {fmt(lo_y)} .. {fmt(hi_y)}"

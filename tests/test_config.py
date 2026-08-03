@@ -82,6 +82,47 @@ def test_typo_key_rejected_with_path(tmp_path):
         _load_modified(tmp_path, raw)
 
 
+def test_machine_offsets_derived_when_omitted(tmp_path):
+    raw = _raw()
+    raw["machine"] = {"line_name": "Line", "line_id": 1}
+    cfg = _load_modified(tmp_path, raw)
+    # clamp = half the panel height (exact in BOTH reference files)
+    assert cfg.machine.clamp_offset_y == Decimal("84.709")
+    # circuit_layout_offset = -circuit.origin (same information, opposite sign)
+    assert cfg.machine.circuit_layout_offset.x == Decimal("-21.5392")
+    assert cfg.machine.circuit_layout_offset.y == Decimal("-25.3873")
+    # pwb_layout_offset nominal; the JaNets file's taught x was 248.7168,
+    # 4 um off this nominal - taught values go in the YAML explicitly.
+    assert cfg.machine.pwb_layout_offset.x == Decimal("248.7208")
+    assert cfg.machine.pwb_layout_offset.y == Decimal("-38.0873")
+    assert set(cfg.derived_machine) == {
+        "clamp_offset_y", "pwb_layout_offset", "circuit_layout_offset",
+    }
+
+
+def test_machine_section_omitted_entirely(tmp_path):
+    raw = _raw()
+    del raw["machine"]
+    cfg = _load_modified(tmp_path, raw)
+    assert cfg.machine.clamp_offset_y == Decimal("84.709")
+    assert cfg.machine.line_name == "Line"
+
+
+def test_machine_offsets_explicit_values_win():
+    cfg = load_panel(FIX / "sample_panel.yaml")  # fully explicit machine block
+    assert cfg.derived_machine == {}
+    assert cfg.machine.pwb_layout_offset.x == Decimal("248.7168")  # taught
+
+
+def test_machine_offsets_partial_derivation(tmp_path):
+    raw = _raw()
+    del raw["machine"]["clamp_offset_y"]
+    cfg = _load_modified(tmp_path, raw)
+    assert cfg.machine.clamp_offset_y == Decimal("84.709")
+    assert list(cfg.derived_machine) == ["clamp_offset_y"]
+    assert cfg.machine.pwb_layout_offset.x == Decimal("248.7168")  # still explicit
+
+
 def test_scaffold_yaml_is_loadable(tmp_path):
     p = tmp_path / "panel.yaml"
     p.write_text(scaffold_yaml(), encoding="utf-8")

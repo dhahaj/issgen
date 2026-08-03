@@ -73,6 +73,26 @@ def test_build_check_writes_nothing(tmp_path):
     assert not (tmp_path / "never.iss").exists()
 
 
+def test_build_prints_derived_offsets(tmp_path):
+    raw = yaml.safe_load((FIX / "sample_panel.yaml").read_text())
+    del raw["machine"]  # all offsets derived
+    panel = tmp_path / "derived.yaml"
+    panel.write_text(yaml.safe_dump(raw))
+    res = _run(*_build_args(tmp_path, "derived.iss", panel))
+    assert res.exit_code == 0, res.output
+    assert "machine.clamp_offset_y = 84.709" in res.output
+    assert "[derived: panel.outline.y / 2]" in res.output
+    assert "machine.pwb_layout_offset = (248.7208, -38.0873)" in res.output
+    # and the emitted file carries the derived values
+    from lxml import etree
+
+    root = etree.fromstring((tmp_path / "derived.iss").read_bytes())
+    assert root.find("model/pwbData/pwbConfiguration/clampOffset").get("y") == "84.709"
+    # explicit YAML (sample_panel) prints no derived lines
+    res2 = _run(*_build_args(tmp_path, "explicit.iss"))
+    assert "[derived:" not in res2.output
+
+
 def test_build_refuses_out_of_panel_without_force(tmp_path):
     raw = yaml.safe_load((FIX / "sample_panel.yaml").read_text())
     raw["circuit"]["outline"] = {"x": 1, "y": 1}  # nothing fits
