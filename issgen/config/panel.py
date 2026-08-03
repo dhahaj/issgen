@@ -17,11 +17,6 @@ from pydantic import (
     model_validator,
 )
 
-# pwb_layout_offset.y sits this far below the CAD origin in both reference
-# programs - 12.7 mm (0.5 in), presumably a rail/clamp edge reference. The
-# physical meaning on the line is unconfirmed; machines with a different
-# geometry should set machine.pwb_layout_offset explicitly.
-PWB_LAYOUT_Y_MARGIN_MM = Decimal("12.7")
 
 
 def _to_decimal(v: object) -> Decimal:
@@ -162,11 +157,14 @@ class PanelConfig(Strict):
     def _derive_machine_offsets(self) -> "PanelConfig":
         """Fill omitted machine offsets from panel/circuit geometry.
 
-        Relationships verified against the reference programs:
+        Relationships (operator-verified; see also the reference programs):
         - circuit_layout_offset = -circuit.origin (exact; same information)
         - clamp_offset_y = panel.outline.y / 2 (exact in both files)
-        - pwb_layout_offset = (outline.x - origin.x, -(origin.y + 12.7))
-          (nominal; the JaNets taught x was 4 um off this)
+        - pwb_layout_offset = (outline.x - origin.x, -origin.y) - the vector
+          from the CAD origin to the panel's lower-right (LTOR leading)
+          corner. The JaNets reference deviates from this nominal (x by 4 um,
+          y by 12.7 mm) because that board's value was taught/adjusted -
+          taught values belong in the YAML explicitly.
         """
         m, org = self.machine, self.circuit.origin
         if m.clamp_offset_y is None:
@@ -178,10 +176,10 @@ class PanelConfig(Strict):
         if m.pwb_layout_offset is None:
             m.pwb_layout_offset = DecimalXY(
                 x=self.panel.outline.x - org.x,
-                y=-(org.y + PWB_LAYOUT_Y_MARGIN_MM),
+                y=-org.y,
             )
             self._derived_machine["pwb_layout_offset"] = (
-                "(panel.outline.x - origin.x, -(origin.y + 12.7))"
+                "(panel.outline.x - origin.x, -origin.y)"
             )
         return self
 

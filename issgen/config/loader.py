@@ -73,7 +73,7 @@ machine:
   #   clamp_offset_y        = panel.outline.y / 2
   #   circuit_layout_offset = -circuit.origin
   #   pwb_layout_offset     = {x: panel.outline.x - circuit.origin.x,
-  #                            y: -(circuit.origin.y + 12.7)}
+  #                            y: -circuit.origin.y}
   # Derived values are printed by build and --check. Uncomment to override
   # with machine-taught values:
   # clamp_offset_y: 84.709

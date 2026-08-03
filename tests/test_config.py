@@ -91,13 +91,32 @@ def test_machine_offsets_derived_when_omitted(tmp_path):
     # circuit_layout_offset = -circuit.origin (same information, opposite sign)
     assert cfg.machine.circuit_layout_offset.x == Decimal("-21.5392")
     assert cfg.machine.circuit_layout_offset.y == Decimal("-25.3873")
-    # pwb_layout_offset nominal; the JaNets file's taught x was 248.7168,
-    # 4 um off this nominal - taught values go in the YAML explicitly.
+    # pwb_layout_offset nominal. The JaNets file's actual values (248.7168,
+    # -38.0873) deviate from this - x by 4 um, y by 12.7 mm - because that
+    # board's offset was taught/adjusted; taught values go in the YAML
+    # explicitly (as roundtrip_panel.yaml does).
     assert cfg.machine.pwb_layout_offset.x == Decimal("248.7208")
-    assert cfg.machine.pwb_layout_offset.y == Decimal("-38.0873")
+    assert cfg.machine.pwb_layout_offset.y == Decimal("-25.3873")
     assert set(cfg.derived_machine) == {
         "clamp_offset_y", "pwb_layout_offset", "circuit_layout_offset",
     }
+
+
+def test_machine_offsets_derived_zero_origin(tmp_path):
+    """Operator-verified case: CAD origin at the circuit lower-left corner
+    (origin 0,0) must derive pwb_layout_offset y = 0, not -12.7. The 12.7 mm
+    term seen in the JaNets reference is that board's taught/adjusted value,
+    not part of the geometric nominal."""
+    raw = _raw()
+    raw["panel"]["outline"] = {"x": "87.1221", "y": "50.3014"}
+    raw["circuit"]["origin"] = {"x": 0, "y": 0}
+    raw["machine"] = {"line_name": "Line", "line_id": 1}
+    cfg = _load_modified(tmp_path, raw)
+    assert cfg.machine.pwb_layout_offset.x == Decimal("87.1221")
+    assert cfg.machine.pwb_layout_offset.y == Decimal("0")
+    assert cfg.machine.circuit_layout_offset.x == Decimal("0")
+    assert cfg.machine.circuit_layout_offset.y == Decimal("0")
+    assert cfg.machine.clamp_offset_y == Decimal("25.1507")
 
 
 def test_machine_section_omitted_entirely(tmp_path):

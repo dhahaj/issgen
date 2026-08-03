@@ -72,12 +72,12 @@ Run `issgen init` for the commented scaffold. Key points:
 - **`machine` offsets are derived when omitted** (they're geometric on this
   line, not usually taught): `clamp_offset_y = panel.outline.y / 2`,
   `circuit_layout_offset = -circuit.origin`, and
-  `pwb_layout_offset = (outline.x - origin.x, -(origin.y + 12.7))` — the
-  12.7 mm (0.5 in) y-margin matches both reference programs but its physical
-  meaning is unconfirmed. Derived values are printed by `build` and `--check`
-  so they never enter a file invisibly; set any offset explicitly to carry a
-  machine-taught value instead (the JaNets reference's taught
-  `pwb_layout_offset.x` sits 4 µm off the nominal).
+  `pwb_layout_offset = (outline.x - origin.x, -origin.y)` — the vector from
+  the CAD origin to the panel's lower-right (LTOR leading) corner. Derived
+  values are printed by `build` and `--check` so they never enter a file
+  invisibly; set any offset explicitly to carry a machine-taught value
+  instead (the JaNets reference's `pwb_layout_offset` sits 4 µm / 12.7 mm off
+  the nominal — that board's value was taught).
 - **`pnp.columns`** maps your Altium export's header names; units are `mm` or
   `mil` (a `mm`/`mil` suffix inside a value overrides). `pnp.side: bottom`
   mirrors across the panel X axis and is **UNTESTED on a real board** — the

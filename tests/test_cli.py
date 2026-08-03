@@ -82,7 +82,7 @@ def test_build_prints_derived_offsets(tmp_path):
     assert res.exit_code == 0, res.output
     assert "machine.clamp_offset_y = 84.709" in res.output
     assert "[derived: panel.outline.y / 2]" in res.output
-    assert "machine.pwb_layout_offset = (248.7208, -38.0873)" in res.output
+    assert "machine.pwb_layout_offset = (248.7208, -25.3873)" in res.output
     # and the emitted file carries the derived values
     from lxml import etree
 
