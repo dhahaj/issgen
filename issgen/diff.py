@@ -76,18 +76,42 @@ def _dec(el, attr) -> Decimal | None:
     return Decimal(el.get(attr))
 
 
+def _circuit_positions(circuit: etree._Element | None) -> list[tuple]:
+    """Where the circuit instances sit, whichever way the file encodes them.
+
+    A MATRIX program and the NONMATRIX program it replaces describe the same
+    panel, so the rollout gate has to see through the encoding: a <matrix> is
+    expanded here, and both sides are sorted because instance ORDER is the
+    machine's own business under MATRIX. The encoding itself is reported as a
+    separate key, so switching it still shows up in a diff - just not as a
+    phantom position change.
+    """
+    if circuit is None:
+        return []
+    matrix = circuit.find("matrix")
+    if matrix is None:
+        return sorted(
+            (_dec(al, "x"), _dec(al, "y"), _dec(al, "angle"))
+            for al in circuit.findall("nonMatrix/allocation")
+        )
+    div = matrix.find("divideNumber")
+    ref = matrix.find("matrixReferencePosition")
+    pitch = matrix.find("matrixPitch")
+    if div is None or ref is None or pitch is None:
+        return []
+    x0, y0 = _dec(ref, "x"), _dec(ref, "y")
+    px, py = _dec(pitch, "x"), _dec(pitch, "y")
+    return sorted(
+        (x0 + px * i, y0 + py * j, Decimal(0))
+        for i in range(int(div.get("x")))
+        for j in range(int(div.get("y")))
+    )
+
+
 def _geometry(root: etree._Element) -> dict[str, object]:
     pwb = root.find("core/pwbData/pwbConfiguration")
     circuit = root.find(
         "core/pwbData/circuitConfigurationData/circuitConfiguration[@index='0']"
-    )
-    allocs = (
-        [
-            (_dec(al, "x"), _dec(al, "y"), _dec(al, "angle"))
-            for al in circuit.findall("nonMatrix/allocation")
-        ]
-        if circuit is not None
-        else []
     )
     return {
         "panel outline": (_dec(pwb.find("outline"), "x"), _dec(pwb.find("outline"), "y"))
@@ -99,7 +123,10 @@ def _geometry(root: etree._Element) -> dict[str, object]:
         )
         if circuit is not None
         else None,
-        "allocations": allocs,
+        "circuit encoding": circuit.findtext("circuitConfiguration")
+        if circuit is not None
+        else None,
+        "circuit positions": _circuit_positions(circuit),
     }
 
 

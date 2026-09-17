@@ -53,11 +53,24 @@ circuit:
   array:                      # ideal grid; use 'allocations:' instead for taught/irregular offsets
     nx: 4
     ny: 3
+    # Step between circuit origins. Give EITHER pitch or gap:
+    #   pitch - origin-to-origin distance
+    #   gap   - routing space between circuit EDGES; pitch becomes
+    #           circuit.outline + gap, which is what a panel drawing states
     pitch: {x: 68.2, y: 48.05}
-    first: {x: 0, y: 0}
+    # gap: {x: 0.508, y: 0.508}
+    first: {x: 0, y: 0}       # position of the first circuit = matrix reference
+    # Order of the generated allocation list. It only reaches the file in
+    # NONMATRIX mode - a MATRIX circuit hands the machine nx/ny/pitch and the
+    # machine steps the grid out itself.
     order: row_major          # row_major | column_major | serpentine
   # allocations:              # alternative to array (mutually exclusive)
   #   - {x: 0, y: 0, angle: 0}
+  # An 'array' is emitted as circuitConfiguration MATRIX (nx/ny/pitch; the
+  # machine steps the grid), 'allocations' as NONMATRIX (every position listed
+  # - required for taught/irregular panels). Override only if you need the
+  # other encoding; matrix requires an array.
+  layout: auto                # auto | matrix | nonmatrix
 
 # MAXIMUM THREE - the Juki mark group has exactly 3 slots. A fourth fiducial
 # is a config error (CircuitCAM's 4-fiducial overflow corrupted programs).

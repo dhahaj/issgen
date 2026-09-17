@@ -91,3 +91,71 @@ def test_stub_model_component_data_flagged():
 def test_schema_validation_catches_garbage():
     bad = b'<?xml version="1.0" encoding="utf-8"?><productionProgram><nonsense /></productionProgram>'
     assert validate_bytes(bad) != []
+
+
+def test_layout_declaration_must_match_its_block():
+    """The reported bug in reverse: a declaration that does not match the
+    layout block loads on the machine and misdescribes the panel."""
+    def doc(declared, block):
+        return etree.fromstring(
+            '<productionProgram><core><pwbData>'
+            '<circuitConfigurationData><circuitConfiguration index="0">'
+            f"<circuitId>A</circuitId>"
+            f"<circuitConfiguration>{declared}</circuitConfiguration>"
+            f"{block}"
+            "</circuitConfiguration></circuitConfigurationData>"
+            "</pwbData><placementData /><componentData /></core>"
+            "</productionProgram>".encode()
+        )
+
+    MATRIX_BLOCK = (
+        "<matrix><divideNumber x=\"4\" y=\"3\" />"
+        "<matrixReferencePosition x=\"0\" y=\"0\" />"
+        "<matrixPitch x=\"68.2\" y=\"48.05\" /></matrix>"
+    )
+    LIST_BLOCK = (
+        '<nonMatrix><totalCount count="1" />'
+        '<allocation index="0" x="0" y="0" angle="0" rangeOver="0" />'
+        "</nonMatrix>"
+    )
+
+    assert not any(
+        "MATRIX" in f for f in check_semantics(doc("MATRIX", MATRIX_BLOCK))
+    )
+    assert not any(
+        "MATRIX" in f for f in check_semantics(doc("NONMATRIX", LIST_BLOCK))
+    )
+    # declared one way, encoded the other
+    assert any(
+        "carries a <nonMatrix> block" in f
+        for f in check_semantics(doc("MATRIX", LIST_BLOCK))
+    )
+    assert any(
+        "carries a <matrix> block" in f
+        for f in check_semantics(doc("NONMATRIX", MATRIX_BLOCK))
+    )
+    # declared but not encoded at all, and encoded twice
+    assert any(
+        "carries no <matrix> block" in f for f in check_semantics(doc("MATRIX", ""))
+    )
+    assert any(
+        "exactly once" in f
+        for f in check_semantics(doc("MATRIX", MATRIX_BLOCK + LIST_BLOCK))
+    )
+    # an incomplete matrix cannot be stepped out
+    assert any(
+        "matrix missing matrixPitch" in f
+        for f in check_semantics(
+            doc("MATRIX", '<matrix><divideNumber x="4" y="3" />'
+                          '<matrixReferencePosition x="0" y="0" /></matrix>')
+        )
+    )
+
+
+def test_reference_programs_pass_the_layout_check():
+    for name in ("Program.iss", "102628_C7_NEW.iss"):
+        root = etree.fromstring((FIX / name).read_bytes())
+        assert not any(
+            "circuit A" in f or "circuit B" in f
+            for f in check_semantics(root)
+        ), name

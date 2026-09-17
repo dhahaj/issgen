@@ -24,6 +24,29 @@ def _bm():
     return make_build_model(cfg, rows, parts, timestamp=TS)
 
 
+def _bm_from(raw):
+    """Build model straight from a mutated sample_panel dict."""
+    from issgen.config.panel import PanelConfig
+
+    cfg = PanelConfig.model_validate(raw)
+    rows = read_pnp(FIX / "sample_pnp.csv", cfg.pnp)
+    return make_build_model(
+        cfg, rows, load_cache(FIX / "parts_cache.json"), timestamp=TS
+    )
+
+
+def _sample_raw():
+    import yaml
+
+    return yaml.safe_load((FIX / "sample_panel.yaml").read_text())
+
+
+def _circuit_a(root):
+    return root.find(
+        "pwbData/circuitConfigurationData/circuitConfiguration[@index='0']"
+    )
+
+
 def _text(el):
     return serialize(el).decode("utf-8-sig")
 
@@ -128,18 +151,80 @@ def test_core_pwb_and_circuits():
     assert len(circuits) == 2
     a, b = circuits
     assert a.findtext("circuitUse") == "USE"
-    assert a.findtext("circuitConfiguration") == "NONMATRIX"
-    assert a.findtext("bocMarkType") == "PWBBOC"
-    allocs = a.findall("nonMatrix/allocation")
-    assert len(allocs) == 12
-    assert a.find("nonMatrix/totalCount").get("count") == "12"
-    assert [al.get("index") for al in allocs] == [str(i) for i in range(12)]
-    assert allocs[1].get("y") == "48.05"  # column_major
-    assert all(al.get("rangeOver") == "0" for al in allocs)
+    assert a.find("circuitOutline").get("x") == "65.6"
     assert b.findtext("circuitUse") == "NOUSE"
     assert b.findtext("circuitId") == "B"
     assert b.findtext("circuitConfiguration") == "SINGLE"
     assert b.find("circuitOutline").get("x") == "0"
+
+
+# --- circuit layout: MATRIX vs NONMATRIX ---------------------------------
+
+
+def test_ideal_grid_emits_matrix_not_an_expanded_list():
+    """An 'array:' block IS a matrix. Declaring NONMATRIX and then handing the
+    machine grid data loads, but misdescribes the panel - the bug this branch
+    exists to prevent."""
+    a = _circuit_a(emit_core(_bm()))
+    assert a.findtext("circuitConfiguration") == "MATRIX"
+    assert a.findtext("bocMarkType") == "NOUSE"
+    assert a.find("nonMatrix") is None
+    m = a.find("matrix")
+    assert [e.tag for e in m] == [
+        "divideNumber", "matrixReferencePosition", "matrixPitch",
+    ]
+    assert (m.find("divideNumber").get("x"), m.find("divideNumber").get("y")) == (
+        "4", "3",
+    )
+    ref = m.find("matrixReferencePosition")
+    assert (ref.get("x"), ref.get("y")) == ("0", "0")
+    pitch = m.find("matrixPitch")
+    assert (pitch.get("x"), pitch.get("y")) == ("68.2", "48.05")
+
+
+def test_matrix_pitch_from_gap_is_outline_plus_gap():
+    """The panel drawing states the routing gap, not the pitch; 50.8 + 0.508."""
+    raw = _sample_raw()
+    raw["circuit"]["outline"] = {"x": "50.8", "y": "52.07"}
+    raw["circuit"]["array"] = {
+        "nx": 5, "ny": 3, "gap": {"x": "0.508", "y": "0.508"},
+    }
+    raw["panel"]["outline"] = {"x": "400", "y": "400"}
+    pitch = _circuit_a(emit_core(_bm_from(raw))).find("matrix/matrixPitch")
+    assert (pitch.get("x"), pitch.get("y")) == ("51.308", "52.578")
+
+
+def test_explicit_allocations_emit_nonmatrix():
+    """Taught positions have no expression as nx/ny/pitch, so they stay a
+    list - which is what both machine-authored reference programs carry."""
+    raw = _sample_raw()
+    raw["circuit"]["array"] = None
+    raw["circuit"]["allocations"] = [
+        {"x": "0.0402", "y": "0.1396"},
+        {"x": "68.2091", "y": "96.1519"},
+    ]
+    a = _circuit_a(emit_core(_bm_from(raw)))
+    assert a.findtext("circuitConfiguration") == "NONMATRIX"
+    assert a.findtext("bocMarkType") == "PWBBOC"
+    assert a.find("matrix") is None
+    allocs = a.findall("nonMatrix/allocation")
+    assert a.find("nonMatrix/totalCount").get("count") == "2"
+    assert [al.get("index") for al in allocs] == ["0", "1"]
+    assert (allocs[0].get("x"), allocs[0].get("y")) == ("0.0402", "0.1396")
+    assert all(al.get("rangeOver") == "0" for al in allocs)
+    assert all(al.get("angle") == "0" for al in allocs)
+
+
+def test_layout_override_forces_nonmatrix_on_an_ideal_grid():
+    raw = _sample_raw()
+    raw["circuit"]["layout"] = "nonmatrix"
+    a = _circuit_a(emit_core(_bm_from(raw)))
+    assert a.findtext("circuitConfiguration") == "NONMATRIX"
+    assert a.findtext("bocMarkType") == "PWBBOC"
+    allocs = a.findall("nonMatrix/allocation")
+    assert len(allocs) == 12
+    assert allocs[1].get("y") == "48.05"  # column_major, as before
+    assert a.find("matrix") is None
 
 
 def test_core_placements():

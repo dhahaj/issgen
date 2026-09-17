@@ -653,6 +653,30 @@
                 </xs:sequence>
               </xs:complexType>
             </xs:element>
+            <xs:element minOccurs="0" maxOccurs="1" name="matrix">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element minOccurs="0" maxOccurs="1" name="divideNumber">
+                    <xs:complexType>
+                      <xs:attribute name="x" type="xs:int" use="required" />
+                      <xs:attribute name="y" type="xs:int" use="required" />
+                    </xs:complexType>
+                  </xs:element>
+                  <xs:element minOccurs="0" maxOccurs="1" name="matrixReferencePosition">
+                    <xs:complexType>
+                      <xs:attribute name="x" type="xs:decimal" use="required" />
+                      <xs:attribute name="y" type="xs:decimal" use="required" />
+                    </xs:complexType>
+                  </xs:element>
+                  <xs:element minOccurs="0" maxOccurs="1" name="matrixPitch">
+                    <xs:complexType>
+                      <xs:attribute name="x" type="xs:decimal" use="required" />
+                      <xs:attribute name="y" type="xs:decimal" use="required" />
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
             <xs:element minOccurs="0" maxOccurs="1" name="badMark">
               <xs:complexType>
                 <xs:sequence>

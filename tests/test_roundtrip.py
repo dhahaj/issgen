@@ -12,6 +12,11 @@ asserted nowhere because they are absent by design:
   - core componentBasic: moldline, bossHeight, leadLength, packageCode,
     componentInspection
   - circuitConfiguration: badMark, globalBadMark
+
+The ground truth is NONMATRIX (its allocations are machine-taught, deviating
+up to ~0.2 mm from ideal), and roundtrip_panel.yaml feeds those same values in
+as explicit 'allocations' - so this file exercises the NONMATRIX path. The
+MATRIX path is covered by the golden program, whose panel is an ideal grid.
   - model: pwbBasic extras, conveyor data, optimizeCondition, areaBadMarkData,
     vision/centering data, packageData contents
   - machine: pickData, mark teaching data, TemplateLink/markId/solder,

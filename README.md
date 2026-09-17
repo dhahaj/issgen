@@ -66,9 +66,20 @@ Run `issgen init` for the commented scaffold. Key points:
   `circuit.origin` says where the CAD origin sits relative to the circuit's
   lower-left corner and is used by `--check` for containment analysis.
   `panel_absolute` is accepted and only changes what `--check` tests against.
-- **`circuit.array`** generates an ideal allocation grid (`row_major`,
-  `column_major`, or `serpentine`); **`circuit.allocations`** instead takes an
-  explicit list (e.g. machine-taught values). Exactly one of the two.
+- **`circuit.array`** describes an ideal grid and is emitted as
+  `circuitConfiguration MATRIX` — `nx`/`ny`, the reference position and the
+  pitch, with the machine stepping the grid out itself.
+  **`circuit.allocations`** takes an explicit list (e.g. machine-taught
+  values) and is emitted as `NONMATRIX`, every position spelled out. Exactly
+  one of the two; `circuit.layout: matrix|nonmatrix` forces the other
+  encoding (`matrix` requires an `array` — taught per-circuit offsets have no
+  expression as `nx`/`ny`/pitch, which is why the machine writes `NONMATRIX`
+  for them). `array.order` therefore only reaches the file under `NONMATRIX`.
+- **`array.pitch` or `array.gap`, exactly one.** `pitch` is the
+  origin-to-origin step; `gap` is the routing space between circuit *edges*
+  and resolves to `circuit.outline + gap` — usually the number the panel
+  drawing states. A 50.8 × 52.07 circuit with a 0.508 gap gives a
+  51.308 × 52.578 pitch, printed as a derived value by `build` and `--check`.
 - **`machine` offsets are derived when omitted** (they're geometric on this
   line, not usually taught): `clamp_offset_y = panel.outline.y / 2`,
   `circuit_layout_offset = -circuit.origin`, and
@@ -115,7 +126,14 @@ Run `issgen init` for the commented scaffold. Key points:
   AegisMachines.dll; newer JaNets revisions add elements it never knew.
   `issgen validate` reports those separately as version drift, not as errors.
   Attribute-presence claims from the reconstruction are unreliable and ignored;
-  machine constraints are enforced by dedicated semantic checks instead.
+  machine constraints are enforced by dedicated semantic checks instead. The
+  `<matrix>` element under `core` `circuitConfiguration` is hand-added: the
+  reflected DLL only knew `nonMatrix`, and issgen's own output is checked with
+  drift treated as fatal, so the schema has to know what we emit.
+- **A circuit's declaration and its layout block must agree.** Declaring
+  `NONMATRIX` over grid data (or `MATRIX` over an expanded allocation list)
+  loads on the machine and misdescribes the panel — silently. The semantic
+  linter rejects the mismatch in either direction.
 
 ## Reference hierarchy (revised per empirical import testing)
 

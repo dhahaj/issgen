@@ -21,6 +21,11 @@ consequences shape this module:
 Also filtered: the leadLackedData/leadNumber sequencing artifact, and
 ordering complaints among the bocMark/secondBocMark/bocExtMark siblings -
 JaNets itself orders them differently than the reflected sequence.
+
+One element is hand-added to the bundled schema rather than filtered here:
+<matrix> under the core circuitConfiguration. The reflected DLL knew only
+<nonMatrix>, and since generated output is validated with drift treated as
+fatal, the schema has to carry the vocabulary the emitters actually use.
 """
 import re
 from importlib import resources

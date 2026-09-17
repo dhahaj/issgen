@@ -59,11 +59,31 @@ class PanelSection(Strict):
 
 
 class ArraySection(Strict):
+    """An ideal grid of circuit instances - what the machine calls a MATRIX."""
+
     nx: int = Field(ge=1)
     ny: int = Field(ge=1)
-    pitch: DecimalXY
+    # Step from one circuit origin to the next. Give exactly one of 'pitch' or
+    # 'gap'; gap is the routing space between circuit EDGES and resolves to
+    # circuit.outline + gap, which is the number a panel drawing actually
+    # states. Resolution happens in CircuitSection (it owns the outline).
+    pitch: DecimalXY | None = None
+    gap: DecimalXY | None = None
     first: DecimalXY = Field(default_factory=_xy_zero)
+    # Traversal order of the generated allocation list. It reaches the file
+    # only in NONMATRIX mode; a MATRIX circuit hands the machine nx/ny/pitch
+    # and the machine steps the grid out itself.
     order: Literal["row_major", "column_major", "serpentine"] = "row_major"
+
+    @model_validator(mode="after")
+    def _exactly_one_step(self) -> "ArraySection":
+        if (self.pitch is None) == (self.gap is None):
+            raise ValueError(
+                "array needs exactly one of 'pitch' (origin-to-origin step) "
+                "or 'gap' (space between circuit edges; pitch becomes "
+                "circuit.outline + gap)"
+            )
+        return self
 
 
 class Allocation(Strict):
@@ -78,6 +98,13 @@ class CircuitSection(Strict):
     origin: DecimalXY = Field(default_factory=_xy_zero)
     array: ArraySection | None = None
     allocations: list[Allocation] | None = None
+    # Which circuitConfiguration the core section declares. "auto" follows the
+    # layout source, which is what the two forms mean: an ideal grid IS a
+    # matrix, and an explicit list is the taught/irregular case the machine
+    # itself writes as NONMATRIX. Override to force the other encoding.
+    layout: Literal["auto", "matrix", "nonmatrix"] = "auto"
+
+    _derived: dict[str, str] = PrivateAttr(default_factory=dict)
 
     @model_validator(mode="after")
     def _exactly_one_layout(self) -> "CircuitSection":
@@ -87,6 +114,40 @@ class CircuitSection(Strict):
                 "'allocations' (explicit list)"
             )
         return self
+
+    @model_validator(mode="after")
+    def _resolve_pitch(self) -> "CircuitSection":
+        """Turn array.gap into the pitch everything downstream reads."""
+        if self.array is not None and self.array.pitch is None:
+            gap = self.array.gap
+            self.array.pitch = DecimalXY(
+                x=self.outline.x + gap.x, y=self.outline.y + gap.y
+            )
+            self._derived["circuit.array.pitch"] = "circuit.outline + array.gap"
+        return self
+
+    @model_validator(mode="after")
+    def _matrix_needs_a_grid(self) -> "CircuitSection":
+        if self.layout == "matrix" and self.array is None:
+            raise ValueError(
+                "layout: matrix needs an 'array' block - explicit allocations "
+                "carry per-circuit offsets (taught values) that nx/ny/pitch "
+                "cannot express, which is why the machine writes NONMATRIX "
+                "for them; convert to 'array' or drop the override"
+            )
+        return self
+
+    @property
+    def emitted_layout(self) -> str:
+        """The circuitConfiguration value: "MATRIX" or "NONMATRIX"."""
+        if self.layout != "auto":
+            return self.layout.upper()
+        return "MATRIX" if self.array is not None else "NONMATRIX"
+
+    @property
+    def derived_geometry(self) -> dict[str, str]:
+        """Circuit geometry derived rather than given: name -> formula."""
+        return dict(self._derived)
 
 
 class Fiducial(Strict):

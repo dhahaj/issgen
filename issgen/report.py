@@ -1,21 +1,44 @@
 """Human-readable rendering of the --check analysis."""
 from issgen.config.panel import DecimalXY, PanelConfig
 from issgen.emit.document import fmt
+from issgen.geometry.array import build_allocations
 from issgen.geometry.checks import CheckReport
 
 
-def derived_machine_notes(cfg: PanelConfig) -> list[str]:
-    """One line per machine offset that was derived from geometry rather than
-    given in the YAML - visible so a wrong derivation can't hide."""
-    notes = []
-    for field, formula in cfg.derived_machine.items():
-        value = getattr(cfg.machine, field)
-        if isinstance(value, DecimalXY):
-            shown = f"({fmt(value.x)}, {fmt(value.y)})"
-        else:
-            shown = fmt(value)
-        notes.append(f"machine.{field} = {shown}  [derived: {formula}]")
+def _shown(value: object) -> str:
+    if isinstance(value, DecimalXY):
+        return f"({fmt(value.x)}, {fmt(value.y)})"
+    return fmt(value)
+
+
+def derived_notes(cfg: PanelConfig) -> list[str]:
+    """One line per value derived from geometry rather than given in the YAML
+    - visible so a wrong derivation can't hide."""
+    notes = [
+        f"machine.{field} = {_shown(getattr(cfg.machine, field))}  "
+        f"[derived: {formula}]"
+        for field, formula in cfg.derived_machine.items()
+    ]
+    notes += [
+        f"{field} = {_shown(cfg.circuit.array.pitch)}  [derived: {formula}]"
+        for field, formula in cfg.circuit.derived_geometry.items()
+    ]
     return notes
+
+
+def _layout_why(cfg: PanelConfig) -> str:
+    """Why that encoding, and what it costs - the allocation ORDER is inert
+    under MATRIX, which is worth saying out loud before someone tunes it."""
+    c = cfg.circuit
+    forced = "" if c.layout == "auto" else f", forced by layout: {c.layout}"
+    if c.emitted_layout == "MATRIX":
+        a = c.array
+        return (
+            f" ({a.nx} x {a.ny}, pitch ({fmt(a.pitch.x)}, {fmt(a.pitch.y)}) "
+            f"from ({fmt(a.first.x)}, {fmt(a.first.y)}); array.order is not "
+            f"emitted{forced})"
+        )
+    return f" ({len(build_allocations(c))} explicit allocation(s){forced})"
 
 
 def render_report(report: CheckReport, cfg: PanelConfig) -> str:
@@ -25,7 +48,8 @@ def render_report(report: CheckReport, cfg: PanelConfig) -> str:
     add = lines.append
 
     add(f"frame: {report.frame}")
-    for note in derived_machine_notes(cfg):
+    add(f"circuit configuration: {cfg.circuit.emitted_layout}" + _layout_why(cfg))
+    for note in derived_notes(cfg):
         add(note)
     add(
         f"placement bbox (emitted coords): x {fmt(lo_x)} .. {fmt(hi_x)}, "

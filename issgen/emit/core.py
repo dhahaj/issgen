@@ -2,11 +2,59 @@
 
 Child order follows the XSD sequence as exercised by Program.iss. The circuit B
 NOUSE stub is present in both reference files; keep it.
+
+Circuit A is encoded one of two ways, and the two are not interchangeable:
+
+MATRIX
+    ``<matrix>`` carries nx/ny, the reference position and the pitch, and the
+    machine steps the grid out itself. This is the correct encoding for an
+    ideal grid - emitting the expanded allocation list for one is what this
+    module used to do, and it loads but misrepresents the panel.
+NONMATRIX
+    ``<nonMatrix>`` lists every circuit position explicitly. Required when the
+    positions are taught or otherwise irregular, because per-circuit offsets
+    have no expression in nx/ny/pitch. Both machine-authored reference
+    programs are NONMATRIX for exactly that reason.
+
+``bocMarkType`` tracks the mode: NOUSE under MATRIX, PWBBOC under NONMATRIX
+(what both reference programs carry).
 """
 from lxml import etree
 
 from issgen.build import BuildModel
+from issgen.config.panel import Allocation, ArraySection
 from issgen.emit.document import fmt
+
+
+def _matrix(parent: etree._Element, array: ArraySection) -> None:
+    """The grid as a grid: divide counts, where it starts, how far it steps."""
+    m = etree.SubElement(parent, "matrix")
+    etree.SubElement(m, "divideNumber", x=str(array.nx), y=str(array.ny))
+    etree.SubElement(
+        m,
+        "matrixReferencePosition",
+        x=fmt(array.first.x),
+        y=fmt(array.first.y),
+    )
+    etree.SubElement(
+        m, "matrixPitch", x=fmt(array.pitch.x), y=fmt(array.pitch.y)
+    )
+
+
+def _non_matrix(parent: etree._Element, allocations: list[Allocation]) -> None:
+    """Every circuit position spelled out - the taught/irregular encoding."""
+    nm = etree.SubElement(parent, "nonMatrix")
+    etree.SubElement(nm, "totalCount", count=str(len(allocations)))
+    for i, alloc in enumerate(allocations):
+        etree.SubElement(
+            nm,
+            "allocation",
+            index=str(i),
+            x=fmt(alloc.x),
+            y=fmt(alloc.y),
+            angle=fmt(alloc.angle),
+            rangeOver="0",
+        )
 
 
 def _pwb_data(bm: BuildModel) -> etree._Element:
@@ -37,11 +85,14 @@ def _pwb_data(bm: BuildModel) -> etree._Element:
 
     ccd = etree.SubElement(pwb, "circuitConfigurationData")
 
+    layout = cfg.circuit.emitted_layout
     a = etree.SubElement(ccd, "circuitConfiguration", index="0")
     etree.SubElement(a, "circuitUse").text = "USE"
     etree.SubElement(a, "circuitId").text = cfg.circuit.id
-    etree.SubElement(a, "circuitConfiguration").text = "NONMATRIX"
-    etree.SubElement(a, "bocMarkType").text = "PWBBOC"
+    etree.SubElement(a, "circuitConfiguration").text = layout
+    etree.SubElement(a, "bocMarkType").text = (
+        "NOUSE" if layout == "MATRIX" else "PWBBOC"
+    )
     etree.SubElement(
         a,
         "circuitOutline",
@@ -49,18 +100,10 @@ def _pwb_data(bm: BuildModel) -> etree._Element:
         y=fmt(cfg.circuit.outline.y),
     )
     etree.SubElement(a, "referencePosition")
-    nm = etree.SubElement(a, "nonMatrix")
-    etree.SubElement(nm, "totalCount", count=str(len(bm.allocations)))
-    for i, alloc in enumerate(bm.allocations):
-        etree.SubElement(
-            nm,
-            "allocation",
-            index=str(i),
-            x=fmt(alloc.x),
-            y=fmt(alloc.y),
-            angle=fmt(alloc.angle),
-            rangeOver="0",
-        )
+    if layout == "MATRIX":
+        _matrix(a, cfg.circuit.array)
+    else:
+        _non_matrix(a, bm.allocations)
 
     b = etree.SubElement(ccd, "circuitConfiguration", index="1")
     etree.SubElement(b, "circuitUse").text = "NOUSE"

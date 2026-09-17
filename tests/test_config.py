@@ -61,6 +61,65 @@ def test_explicit_allocations_alternative(tmp_path):
     assert cfg.circuit.allocations[0].x == Decimal("0.0402")
 
 
+def test_array_gap_resolves_to_outline_plus_gap(tmp_path):
+    """Panel drawings state the routing gap between circuit edges; the pitch
+    is outline + gap. 50.8 + 0.508 = 51.308."""
+    raw = _raw()
+    raw["circuit"]["outline"] = {"x": "50.8", "y": "52.07"}
+    raw["circuit"]["array"] = {"nx": 5, "ny": 3, "gap": {"x": "0.508", "y": "0.508"}}
+    cfg = _load_modified(tmp_path, raw)
+    assert cfg.circuit.array.pitch.x == Decimal("51.308")
+    assert cfg.circuit.array.pitch.y == Decimal("52.578")
+    assert cfg.circuit.derived_geometry == {
+        "circuit.array.pitch": "circuit.outline + array.gap"
+    }
+
+
+def test_array_pitch_given_is_not_derived(tmp_path):
+    cfg = _load_modified(tmp_path, _raw())  # sample_panel gives pitch
+    assert cfg.circuit.array.pitch.x == Decimal("68.2")
+    assert cfg.circuit.derived_geometry == {}
+
+
+def test_array_pitch_and_gap_both_set_rejected(tmp_path):
+    raw = _raw()
+    raw["circuit"]["array"]["gap"] = {"x": 0.508, "y": 0.508}
+    with pytest.raises(ConfigError, match="(?i)exactly one of 'pitch'"):
+        _load_modified(tmp_path, raw)
+
+
+def test_array_pitch_and_gap_both_missing_rejected(tmp_path):
+    raw = _raw()
+    del raw["circuit"]["array"]["pitch"]
+    with pytest.raises(ConfigError, match="(?i)exactly one of 'pitch'"):
+        _load_modified(tmp_path, raw)
+
+
+def test_layout_defaults_to_the_layout_source(tmp_path):
+    assert _load_modified(tmp_path, _raw()).circuit.emitted_layout == "MATRIX"
+    raw = _raw()
+    raw["circuit"]["array"] = None
+    raw["circuit"]["allocations"] = [{"x": 0, "y": 0}]
+    assert _load_modified(tmp_path, raw).circuit.emitted_layout == "NONMATRIX"
+
+
+def test_layout_override_both_directions(tmp_path):
+    raw = _raw()
+    raw["circuit"]["layout"] = "nonmatrix"
+    assert _load_modified(tmp_path, raw).circuit.emitted_layout == "NONMATRIX"
+
+
+def test_layout_matrix_with_explicit_allocations_rejected(tmp_path):
+    """Taught per-circuit offsets cannot be expressed as nx/ny/pitch, which is
+    why the machine writes NONMATRIX for them."""
+    raw = _raw()
+    raw["circuit"]["array"] = None
+    raw["circuit"]["allocations"] = [{"x": "0.0402", "y": "0.1396"}]
+    raw["circuit"]["layout"] = "matrix"
+    with pytest.raises(ConfigError, match="(?i)needs an 'array' block"):
+        _load_modified(tmp_path, raw)
+
+
 def test_array_and_allocations_both_none_rejected(tmp_path):
     raw = _raw()
     raw["circuit"]["array"] = None

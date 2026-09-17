@@ -64,6 +64,15 @@ def test_golden_content_invariants():
     root = etree.fromstring(data)
     assert root.find("model/componentData") is None  # stub records deadlock
     assert len(root.findall("core/componentData/component")) == 3
+    # sample_panel is an ideal 4x3 grid, so the circuit is a MATRIX and the
+    # expanded allocation list must NOT be there as well
+    a = root.find(
+        "core/pwbData/circuitConfigurationData/circuitConfiguration[@index='0']"
+    )
+    assert a.findtext("circuitConfiguration") == "MATRIX"
+    assert a.find("matrix/matrixPitch").get("x") == "68.2"
+    assert a.find("nonMatrix") is None
+    assert "allocation" not in text
 
 
 def test_build_check_writes_nothing(tmp_path):
@@ -91,6 +100,27 @@ def test_build_prints_derived_offsets(tmp_path):
     # explicit YAML (sample_panel) prints no derived lines
     res2 = _run(*_build_args(tmp_path, "explicit.iss"))
     assert "[derived:" not in res2.output
+
+
+def test_build_prints_derived_pitch_from_gap(tmp_path):
+    raw = yaml.safe_load((FIX / "sample_panel.yaml").read_text())
+    raw["circuit"]["array"] = {
+        "nx": 4, "ny": 3, "gap": {"x": "0.508", "y": "0.508"},
+    }
+    panel = tmp_path / "gap.yaml"
+    panel.write_text(yaml.safe_dump(raw))
+    res = _run(*_build_args(tmp_path, "gap.iss", panel))
+    assert res.exit_code == 0, res.output
+    assert "circuit.array.pitch = (66.108, 48.514)" in res.output
+    assert "[derived: circuit.outline + array.gap]" in res.output
+
+
+def test_check_reports_the_circuit_encoding(tmp_path):
+    res = _run(*_build_args(tmp_path, "never.iss"), "--check")
+    assert res.exit_code == 0, res.output
+    assert "circuit configuration: MATRIX" in res.output
+    assert "4 x 3" in res.output
+    assert "array.order is not emitted" in res.output
 
 
 def test_build_refuses_out_of_panel_without_force(tmp_path):

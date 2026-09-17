@@ -35,6 +35,33 @@ flags any model component record lacking machine-authored `centering` data as
 a deadlock risk (CircuitCAM's centering-bearing records and JaNets' complete
 records are known to open and are not flagged).
 
+## Circuit layout: `MATRIX` vs `NONMATRIX`
+
+Not an import finding — a correctness one. `circuitConfiguration` has to match
+the block that follows it:
+
+| Panel | Declaration | Block |
+|---|---|---|
+| ideal grid (`array:`) | `MATRIX` | `<matrix>`: `divideNumber`, `matrixReferencePosition`, `matrixPitch` |
+| taught / irregular (`allocations:`) | `NONMATRIX` | `<nonMatrix>`: `totalCount` + one `allocation` per circuit |
+
+issgen originally declared `NONMATRIX` unconditionally and expanded every
+grid into an allocation list. That **loads**, which is why it survived — but
+it describes a regular panel as a bag of unrelated positions. A `MATRIX`
+circuit also carries `bocMarkType NOUSE`; `PWBBOC` is the `NONMATRIX`
+convention both reference programs use.
+
+Taught offsets cannot go the other way: per-circuit deviations (the JaNets
+reference deviates up to ~0.2 mm from ideal) have no expression in
+`nx`/`ny`/pitch, so `layout: matrix` with explicit `allocations` is a config
+error rather than a silent rounding of the panel.
+
+The reconstructed XSD knew only `nonMatrix`, so `matrix` was hand-added to it
+— generated output is validated with version drift treated as fatal, and the
+schema has to know the vocabulary we emit. `matrixPitch` is origin-to-origin;
+`array.gap` in the YAML is the edge-to-edge routing gap and resolves to
+`circuit.outline + gap`.
+
 ## Hard constraint: `<tag />` needs the space
 
 Byte-identical files differing only in ` />` vs `/>`: the spaced one opens,
@@ -57,7 +84,9 @@ refuses to produce a file containing `[^ ]/>`.
   `TemplateLink`/`markId`/`solder`, core component extras (`moldline`,
   `bossHeight`, `leadLength`, `packageCode`, `componentInspection`), core
   placement extras (`placementOffset`, `station`, `headUnit`, `head`),
-  `pwbBasic` extras, `badMark`/`globalBadMark`, header extras
+  `pwbBasic` extras, `badMark`/`globalBadMark` (JaNets writes them with
+  `NOUSE` plus an `rx7badMarkInfo` block; issgen omits them by decision,
+  since at `NOUSE` they are inert), header extras
   (`targetVersion`, `programMode`, `editVersion`, `headPick`, ...).
 - Omitting `lineConfiguration/configuration` → warning on open, not failure.
 

@@ -35,25 +35,15 @@
         <circuitConfiguration index="0">
           <circuitUse>USE</circuitUse>
           <circuitId>A</circuitId>
-          <circuitConfiguration>NONMATRIX</circuitConfiguration>
-          <bocMarkType>PWBBOC</bocMarkType>
+          <circuitConfiguration>MATRIX</circuitConfiguration>
+          <bocMarkType>NOUSE</bocMarkType>
           <circuitOutline x="65.6" y="48.006" />
           <referencePosition />
-          <nonMatrix>
-            <totalCount count="12" />
-            <allocation index="0" x="0" y="0" angle="0" rangeOver="0" />
-            <allocation index="1" x="0" y="48.05" angle="0" rangeOver="0" />
-            <allocation index="2" x="0" y="96.1" angle="0" rangeOver="0" />
-            <allocation index="3" x="68.2" y="0" angle="0" rangeOver="0" />
-            <allocation index="4" x="68.2" y="48.05" angle="0" rangeOver="0" />
-            <allocation index="5" x="68.2" y="96.1" angle="0" rangeOver="0" />
-            <allocation index="6" x="136.4" y="0" angle="0" rangeOver="0" />
-            <allocation index="7" x="136.4" y="48.05" angle="0" rangeOver="0" />
-            <allocation index="8" x="136.4" y="96.1" angle="0" rangeOver="0" />
-            <allocation index="9" x="204.6" y="0" angle="0" rangeOver="0" />
-            <allocation index="10" x="204.6" y="48.05" angle="0" rangeOver="0" />
-            <allocation index="11" x="204.6" y="96.1" angle="0" rangeOver="0" />
-          </nonMatrix>
+          <matrix>
+            <divideNumber x="4" y="3" />
+            <matrixReferencePosition x="0" y="0" />
+            <matrixPitch x="68.2" y="48.05" />
+          </matrix>
         </circuitConfiguration>
         <circuitConfiguration index="1">
           <circuitUse>NOUSE</circuitUse>

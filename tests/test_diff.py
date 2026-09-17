@@ -1,6 +1,7 @@
 from decimal import Decimal
 from pathlib import Path
 
+import yaml
 from click.testing import CliRunner
 
 from issgen.cli import main
@@ -83,3 +84,41 @@ def test_cli_diff_over_tolerance_fails(tmp_path):
     assert "0.1" in res.output
     res = CliRunner().invoke(main, ["diff", str(GOLDEN), str(p), "--tol", "0.2"])
     assert res.exit_code == 0
+
+
+def test_matrix_and_nonmatrix_of_the_same_panel_agree(tmp_path):
+    """The rollout gate compares an issgen program against the ISS that made
+    known-good boards. Those describe the same 4x3 panel in the two different
+    encodings, so positions must compare equal - only the encoding differs."""
+    raw = yaml.safe_load((FIX / "sample_panel.yaml").read_text())
+    raw["circuit"]["layout"] = "nonmatrix"
+    panel = tmp_path / "expanded.yaml"
+    panel.write_text(yaml.safe_dump(raw))
+    out = tmp_path / "nonmatrix.iss"
+    res = CliRunner().invoke(
+        main,
+        [
+            "build", str(panel),
+            "--pnp", str(FIX / "sample_pnp.csv"),
+            "--db-cache", str(FIX / "parts_cache.json"),
+            "--timestamp", "2026-07-31T12:00:00",
+            "-o", str(out),
+        ],
+    )
+    assert res.exit_code == 0, res.output
+
+    result = diff_iss(GOLDEN, out)  # GOLDEN is the MATRIX form
+    assert result.deviations == []
+    assert not any("circuit positions" in g for g in result.geometry_diffs)
+    # ...but swapping the encoding is still reported, not swallowed
+    assert any("circuit encoding" in g for g in result.geometry_diffs)
+
+
+def test_matrix_pitch_change_is_a_position_diff(tmp_path):
+    text = GOLDEN.read_bytes().decode("utf-8-sig")
+    mutated = text.replace('<matrixPitch x="68.2"', '<matrixPitch x="68.5"')
+    assert mutated != text
+    p = tmp_path / "b.iss"
+    p.write_bytes(b"\xef\xbb\xbf" + mutated.encode())
+    result = diff_iss(GOLDEN, p)
+    assert any("circuit positions" in g for g in result.geometry_diffs)

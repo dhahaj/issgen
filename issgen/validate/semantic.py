@@ -7,6 +7,9 @@ from lxml import etree
 
 VALID_SLOT_INDICES = {"0", "1", "2"}
 MARK_GROUPS = ("bocMark", "secondBocMark", "bocExtMark")
+# circuitConfiguration value -> the layout block that has to back it up.
+LAYOUT_BLOCK = {"MATRIX": "matrix", "NONMATRIX": "nonMatrix"}
+MATRIX_PARTS = ("divideNumber", "matrixReferencePosition", "matrixPitch")
 
 
 def _check_mark_groups(root: etree._Element, findings: list[str]) -> None:
@@ -46,6 +49,45 @@ def _check_contiguous(name: str, elements, findings: list[str]) -> None:
     want = [str(i) for i in range(len(elements))]
     if got != want:
         findings.append(f"{name}: indices {got} not contiguous from 0")
+
+
+def _check_circuit_layout(core: etree._Element, findings: list[str]) -> None:
+    """The declaration and the layout block have to agree.
+
+    A circuit that says NONMATRIX while its geometry is an ideal grid (or says
+    MATRIX while carrying an expanded allocation list) loads on the machine
+    and misdescribes the panel - it fails silently, so it is checked here.
+    """
+    for cc in core.findall(
+        "pwbData/circuitConfigurationData/circuitConfiguration"
+    ):
+        cid = cc.findtext("circuitId")
+        declared = cc.findtext("circuitConfiguration")
+        present = [t for t in LAYOUT_BLOCK.values() if cc.find(t) is not None]
+        if len(present) > 1:
+            findings.append(
+                f"circuit {cid}: both <matrix> and <nonMatrix> present - the "
+                "layout must be stated exactly once"
+            )
+            continue
+        want = LAYOUT_BLOCK.get(declared)
+        if present and present[0] != want:
+            findings.append(
+                f"circuit {cid}: declares {declared} but carries a "
+                f"<{present[0]}> block"
+            )
+        elif want is not None and not present:
+            findings.append(
+                f"circuit {cid}: declares {declared} but carries no "
+                f"<{want}> block"
+            )
+        for m in cc.findall("matrix"):
+            missing = [t for t in MATRIX_PARTS if m.find(t) is None]
+            if missing:
+                findings.append(
+                    f"circuit {cid}: matrix missing {', '.join(missing)} - "
+                    "the machine cannot step the grid without all three"
+                )
 
 
 def check_semantics(root: etree._Element) -> list[str]:
@@ -110,6 +152,7 @@ def check_semantics(root: etree._Element) -> list[str]:
                 )
 
     if core is not None:
+        _check_circuit_layout(core, findings)
         for nm in core.iter("nonMatrix"):
             total = nm.find("totalCount")
             allocs = nm.findall("allocation")

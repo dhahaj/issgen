@@ -14,7 +14,7 @@ from issgen.emit.header import emit_header
 from issgen.emit.machine import emit_machine
 from issgen.emit.model import emit_model
 from issgen.geometry.checks import run_checks
-from issgen.report import derived_machine_notes, render_report
+from issgen.report import derived_notes, render_report
 from issgen.sources.altium import PnpError, read_pnp
 from issgen.sources.detex import DetexError, dump_cache, get_parts
 from issgen.validate.schema import validate_bytes, validate_document
@@ -78,7 +78,7 @@ def build(panel_yaml, pnp_csv, output, check_only, force, allow_missing, db_cach
     if not check_only:
         # --check prints these inside the report; the write path states them
         # too so derived values never go into a file invisibly.
-        for note in derived_machine_notes(cfg):
+        for note in derived_notes(cfg):
             click.echo(note)
     if check_only:
         click.echo(render_report(report, cfg))
