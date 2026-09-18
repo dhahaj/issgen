@@ -16,8 +16,10 @@ NONMATRIX
     have no expression in nx/ny/pitch. Both machine-authored reference
     programs are NONMATRIX for exactly that reason.
 
-``bocMarkType`` tracks the mode: NOUSE under MATRIX, PWBBOC under NONMATRIX
-(what both reference programs carry).
+``bocMarkType`` is PWBBOC in both modes: it selects the panel fiducials for
+mark recognition and has nothing to do with the layout. NOUSE there turns
+fiducial recognition off (operator-confirmed); only the unused circuit B stub
+carries it.
 """
 from lxml import etree
 
@@ -90,9 +92,9 @@ def _pwb_data(bm: BuildModel) -> etree._Element:
     etree.SubElement(a, "circuitUse").text = "USE"
     etree.SubElement(a, "circuitId").text = cfg.circuit.id
     etree.SubElement(a, "circuitConfiguration").text = layout
-    etree.SubElement(a, "bocMarkType").text = (
-        "NOUSE" if layout == "MATRIX" else "PWBBOC"
-    )
+    # PWBBOC: recognize the panel fiducials (machine/bocMarkData). Independent
+    # of the layout - NOUSE would switch fiducial recognition off.
+    etree.SubElement(a, "bocMarkType").text = "PWBBOC"
     etree.SubElement(
         a,
         "circuitOutline",

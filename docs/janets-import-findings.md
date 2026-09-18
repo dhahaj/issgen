@@ -47,9 +47,13 @@ the block that follows it:
 
 issgen originally declared `NONMATRIX` unconditionally and expanded every
 grid into an allocation list. That **loads**, which is why it survived — but
-it describes a regular panel as a bag of unrelated positions. A `MATRIX`
-circuit also carries `bocMarkType NOUSE`; `PWBBOC` is the `NONMATRIX`
-convention both reference programs use.
+it describes a regular panel as a bag of unrelated positions.
+
+`bocMarkType` is **not** part of the layout: it stays `PWBBOC` (use the panel
+fiducials) under both encodings. `NOUSE` turns fiducial recognition off
+(operator-confirmed). issgen briefly emitted `NOUSE` for `MATRIX` circuits,
+copied from a hand-written example; that disabled the fiducials on every
+matrix panel.
 
 Taught offsets cannot go the other way: per-circuit deviations (the JaNets
 reference deviates up to ~0.2 mm from ideal) have no expression in

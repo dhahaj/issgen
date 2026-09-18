@@ -86,6 +86,7 @@ def test_golden_content_invariants():
         "core/pwbData/circuitConfigurationData/circuitConfiguration[@index='0']"
     )
     assert a.findtext("circuitConfiguration") == "MATRIX"
+    assert a.findtext("bocMarkType") == "PWBBOC"  # NOUSE = fiducials off
     assert a.find("matrix/matrixPitch").get("x") == "68.2"
     assert a.find("nonMatrix") is None
     assert "allocation" not in text

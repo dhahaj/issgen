@@ -167,7 +167,9 @@ def test_ideal_grid_emits_matrix_not_an_expanded_list():
     exists to prevent."""
     a = _circuit_a(emit_core(_bm()))
     assert a.findtext("circuitConfiguration") == "MATRIX"
-    assert a.findtext("bocMarkType") == "NOUSE"
+    # PWBBOC = recognize the panel fiducials. It is not a layout property:
+    # NOUSE here would switch fiducial recognition off for a MATRIX panel.
+    assert a.findtext("bocMarkType") == "PWBBOC"
     assert a.find("nonMatrix") is None
     m = a.find("matrix")
     assert [e.tag for e in m] == [

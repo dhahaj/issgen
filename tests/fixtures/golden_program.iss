@@ -36,7 +36,7 @@
           <circuitUse>USE</circuitUse>
           <circuitId>A</circuitId>
           <circuitConfiguration>MATRIX</circuitConfiguration>
-          <bocMarkType>NOUSE</bocMarkType>
+          <bocMarkType>PWBBOC</bocMarkType>
           <circuitOutline x="65.6" y="48.006" />
           <referencePosition />
           <matrix>
