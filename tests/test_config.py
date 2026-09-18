@@ -207,3 +207,26 @@ def test_scaffold_yaml_is_loadable(tmp_path):
     cfg = load_panel(p)
     assert cfg.frame == "circuit_relative"
     assert len(cfg.fiducials) >= 1
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "utf-8-sig", "utf-16"])
+def test_scaffold_loads_whatever_the_shell_wrote(tmp_path, encoding):
+    """'issgen init > panel.yaml' writes UTF-16 with a BOM in Windows
+    PowerShell 5.1 and BOM-less UTF-8 in PowerShell 7; both must load."""
+    p = tmp_path / "panel.yaml"
+    p.write_bytes(scaffold_yaml().encode(encoding))
+    assert load_panel(p).frame == "circuit_relative"
+
+
+def test_ansi_yaml_with_non_ascii_comment_loads(tmp_path):
+    p = tmp_path / "panel.yaml"
+    text = "# gap 0.508 ± 0.05 mm, fiducials at 90°\n"
+    p.write_bytes((text + (FIX / "sample_panel.yaml").read_text()).encode("cp1252"))
+    assert load_panel(p).panel.id == "102605"
+
+
+def test_undecodable_yaml_is_a_config_error(tmp_path):
+    p = tmp_path / "panel.yaml"
+    p.write_bytes(b"\x81\x8d\x8f\x90\x9d")
+    with pytest.raises(ConfigError, match=r"panel\.yaml"):
+        load_panel(p)

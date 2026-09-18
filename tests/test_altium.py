@@ -88,3 +88,32 @@ def test_utf8_bom_header(tmp_path):
     p.write_bytes(b"\xef\xbb\xbf" + (HEADER + "R1,X,Y,1,2,0,TopLayer\n").encode())
     rows = read_pnp(p, _cfg())
     assert rows[0].designator == "R1"
+
+
+# Altium-style rows carrying the non-ASCII an ANSI export really contains. The
+# Description column is never read, yet it alone used to crash the decode.
+ALTIUM_ROWS = [
+    "Designator,Comment,Footprint,Center-X(mm),Center-Y(mm),Rotation,Layer,Description",
+    'R7,PP-5922-26,RES1206,2.4599,-5.5812,90,TopLayer,"RES 10k ±1% 1206"',
+    "C2,0.1µF,C1206,22.1396,-14.2977,90,TopLayer,CAP X7R -55°C",
+]
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "utf-8-sig", "cp1252", "utf-16"])
+def test_reads_any_windows_encoding_without_a_bom(tmp_path, encoding):
+    """Altium and Excel's plain 'CSV' write the ANSI code page. That used to
+    die in a UnicodeDecodeError unless the file was first re-saved as UTF-8
+    with a BOM."""
+    p = tmp_path / "pnp.csv"
+    p.write_bytes(("\r\n".join(ALTIUM_ROWS) + "\r\n").encode(encoding))
+    rows = read_pnp(p, _cfg())
+    assert [r.designator for r in rows] == ["R7", "C2"]
+    assert rows[0].x == Decimal("2.4599")
+    assert rows[1].comment == "0.1µF"  # decoded correctly, not just survived
+
+
+def test_undecodable_pnp_is_a_clear_error(tmp_path):
+    p = tmp_path / "pnp.xlsx"
+    p.write_bytes(b"PK\x03\x04\x81\x8d\x8f\x90\x9d")
+    with pytest.raises(PnpError, match=r"pnp\.xlsx"):
+        read_pnp(p, _cfg())

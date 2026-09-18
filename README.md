@@ -42,6 +42,7 @@ issgen dbcache panel.yaml -o parts.json
 ```powershell
 issgen init > panel.yaml                                  # commented scaffold
 issgen build panel.yaml --pnp PnP.csv -o Program.iss      # generate
+issgen build panel.yaml -o Panel.iss                      # panel only - no P&P, no placements
 issgen build panel.yaml --pnp PnP.csv --check             # analysis only, writes nothing
 issgen parts panel.yaml --pnp PnP.csv --unmatched         # report DETEX misses
 issgen validate Program.iss                               # schema + semantic checks
@@ -53,6 +54,11 @@ the panel (`--force` overrides), when a placed part is missing from DETEX
 (`--allow-missing` emits zeroed placeholders with a warning), or when the
 generated document fails validation (no override — that is the point).
 `--timestamp 2026-07-31T12:00:00` pins `lastEdit` for reproducible output.
+
+Without `--pnp`, `build` writes a **panel-only program**: the same outline,
+circuit layout, fiducial marks and machine offsets a full build would emit,
+with empty `placementData`/`componentData`. The component database is not
+opened, and `--check` reports that placement containment had nothing to test.
 
 ## panel.yaml
 
@@ -114,6 +120,14 @@ Run `issgen init` for the commented scaffold. Key points:
 - Output is UTF-8 **with BOM**, CRLF, 2-space indent. Empirically BOM, line
   endings, and indentation are free choices — only the ` />` spacing is a hard
   constraint — but JaNets house style keeps diffs readable.
+- **Inputs need no BOM.** The P&P CSV, panel YAML and parts cache are read in
+  whatever encoding the Windows tool that saved them chose: UTF-8 with or
+  without a BOM, UTF-16 with a BOM (Excel "Unicode", and Windows PowerShell
+  5.1's `issgen init > panel.yaml`), or Windows-1252 "ANSI" (Altium, Excel's
+  plain "CSV"). ANSI exports used to crash on the `± µ °` in Altium's
+  Description column unless re-saved as UTF-8-with-BOM; there is no need to
+  re-save anything now. A file that is none of these (a workbook passed
+  instead of its CSV export) is refused with a message, not guessed at.
 - DETEX stores dimensions in 0.1 µm; issgen divides by 10000 (exact, Decimal
   end-to-end — no float noise, no CircuitCAM 1 µin artifacts).
 - **Two component databases exist**: `DETEX_New.mdb` is what JaNets reads
@@ -178,6 +192,7 @@ issgen/
   validate/         schema.py (XSD + artifact/drift filter), semantic.py
   diff.py           placement comparison by designator
   report.py         --check rendering
+  textfile.py       input decoding (UTF-8 +/- BOM, UTF-16, Windows-1252)
 tests/
   fixtures/         Program.iss (CircuitCAM), 102628_C7_NEW.iss (JaNets ground
                     truth), iss_schema_0.xsd, golden_program.iss, round-trip set

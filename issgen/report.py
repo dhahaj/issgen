@@ -42,7 +42,6 @@ def _layout_why(cfg: PanelConfig) -> str:
 
 
 def render_report(report: CheckReport, cfg: PanelConfig) -> str:
-    lo_x, lo_y, hi_x, hi_y = report.bbox
     po, co, org = cfg.panel.outline, cfg.circuit.outline, cfg.circuit.origin
     lines: list[str] = []
     add = lines.append
@@ -51,30 +50,38 @@ def render_report(report: CheckReport, cfg: PanelConfig) -> str:
     add(f"circuit configuration: {cfg.circuit.emitted_layout}" + _layout_why(cfg))
     for note in derived_notes(cfg):
         add(note)
-    add(
-        f"placement bbox (emitted coords): x {fmt(lo_x)} .. {fmt(hi_x)}, "
-        f"y {fmt(lo_y)} .. {fmt(hi_y)}"
-    )
-    add(
-        f"circuit outline {fmt(co.x)} x {fmt(co.y)}, CAD origin at "
-        f"({fmt(org.x)}, {fmt(org.y)}) from lower-left "
-        f"=> circuit spans x {fmt(-org.x)} .. {fmt(co.x - org.x)}, "
-        f"y {fmt(-org.y)} .. {fmt(co.y - org.y)}"
-    )
-    if report.fits_circuit:
-        add("  bbox fits inside the circuit outline -> circuit-relative reading is consistent")
-    else:
-        add("  bbox DOES NOT fit the circuit outline")
-    if report.fits_panel:
-        add(f"  bbox also fits the panel outline {fmt(po.x)} x {fmt(po.y)} (panel-absolute reading)")
-    else:
-        add(f"  bbox does not fit the panel outline {fmt(po.x)} x {fmt(po.y)}")
 
-    inside = [i for i, ok in report.allocation_results if ok]
-    outside = [i for i, ok in report.allocation_results if not ok]
-    total = len(report.allocation_results)
-    add(f"allocations: {len(inside)}/{total} inside the panel"
-        + (f"; OUTSIDE: {', '.join(str(i) for i in outside)}" if outside else ""))
+    if report.bbox is None:
+        # Say the placement checks had nothing to test - not that they passed.
+        add("placements: none (panel-only program) - placement containment "
+            "not checked")
+        add(f"allocations: {len(build_allocations(cfg.circuit))}")
+    else:
+        lo_x, lo_y, hi_x, hi_y = report.bbox
+        add(
+            f"placement bbox (emitted coords): x {fmt(lo_x)} .. {fmt(hi_x)}, "
+            f"y {fmt(lo_y)} .. {fmt(hi_y)}"
+        )
+        add(
+            f"circuit outline {fmt(co.x)} x {fmt(co.y)}, CAD origin at "
+            f"({fmt(org.x)}, {fmt(org.y)}) from lower-left "
+            f"=> circuit spans x {fmt(-org.x)} .. {fmt(co.x - org.x)}, "
+            f"y {fmt(-org.y)} .. {fmt(co.y - org.y)}"
+        )
+        if report.fits_circuit:
+            add("  bbox fits inside the circuit outline -> circuit-relative reading is consistent")
+        else:
+            add("  bbox DOES NOT fit the circuit outline")
+        if report.fits_panel:
+            add(f"  bbox also fits the panel outline {fmt(po.x)} x {fmt(po.y)} (panel-absolute reading)")
+        else:
+            add(f"  bbox does not fit the panel outline {fmt(po.x)} x {fmt(po.y)}")
+
+        inside = [i for i, ok in report.allocation_results if ok]
+        outside = [i for i, ok in report.allocation_results if not ok]
+        total = len(report.allocation_results)
+        add(f"allocations: {len(inside)}/{total} inside the panel"
+            + (f"; OUTSIDE: {', '.join(str(i) for i in outside)}" if outside else ""))
     add(f"allocation sign pattern: {report.alloc_sign_pattern}"
         + ("" if report.grid_consistent else "  [grid spacing INCONSISTENT]"))
 

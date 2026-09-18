@@ -55,6 +55,12 @@ def test_get_parts_no_source_is_error():
         get_parts(DatabaseSection(path=None, cache=None))
 
 
+def test_cache_saved_with_a_bom_loads(tmp_path):
+    p = tmp_path / "parts.json"
+    p.write_bytes(b"\xef\xbb\xbf" + (FIX / "parts_cache.json").read_bytes())
+    assert load_cache(p) == load_cache(FIX / "parts_cache.json")
+
+
 def test_cache_bad_format_rejected(tmp_path):
     p = tmp_path / "parts.json"
     p.write_text(json.dumps({"format": "something-else", "parts": {}}))

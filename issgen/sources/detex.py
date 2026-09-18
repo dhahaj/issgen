@@ -15,6 +15,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from issgen.config.panel import DatabaseSection
+from issgen.textfile import TextDecodeError, read_text
 
 CACHE_FORMAT = "issgen-parts-v1"
 
@@ -118,9 +119,11 @@ def load_mdb(mdb_path: Path | str) -> dict[str, Part]:
 def load_cache(json_path: Path | str) -> dict[str, Part]:
     json_path = Path(json_path)
     try:
-        raw = json.loads(json_path.read_text(encoding="utf-8"))
+        raw = json.loads(read_text(json_path))
     except FileNotFoundError:
         raise DetexError(f"parts cache not found: {json_path}") from None
+    except TextDecodeError as exc:
+        raise DetexError(f"{json_path}: {exc}") from None
     except json.JSONDecodeError as exc:
         raise DetexError(f"{json_path}: not valid JSON: {exc}") from exc
     if raw.get("format") != CACHE_FORMAT:

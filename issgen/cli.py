@@ -50,7 +50,7 @@ def _assemble(bm) -> bytes:
 
 @main.command()
 @click.argument("panel_yaml", type=click.Path(exists=True, path_type=Path))
-@click.option("--pnp", "pnp_csv", required=True, type=click.Path(exists=True, path_type=Path), help="Altium pick-and-place CSV")
+@click.option("--pnp", "pnp_csv", default=None, type=click.Path(exists=True, path_type=Path), help="Altium pick-and-place CSV; omit for a panel-only program (no placements)")
 @click.option("-o", "--output", type=click.Path(path_type=Path), default=Path("Program.iss"), show_default=True)
 @click.option("--check", "check_only", is_flag=True, help="Print the containment analysis and write nothing")
 @click.option("--force", is_flag=True, help="Write output even when --check-level analysis fails")
@@ -58,13 +58,22 @@ def _assemble(bm) -> bytes:
 @click.option("--db-cache", type=click.Path(path_type=Path), default=None, help="parts.json snapshot to use instead of the .mdb")
 @click.option("--timestamp", type=click.DateTime(["%Y-%m-%dT%H:%M:%S"]), default=None, help="Override lastEdit (for reproducible output)")
 def build(panel_yaml, pnp_csv, output, check_only, force, allow_missing, db_cache, timestamp):
-    """Generate an ISS program from PANEL_YAML and a P&P export."""
+    """Generate an ISS program from PANEL_YAML and a P&P export.
+
+    Without --pnp the program is panel-only: outline, circuit layout,
+    fiducials and machine offsets, with no placements or components.
+    """
     try:
         cfg = load_panel(panel_yaml)
         if db_cache is not None:
             cfg.database.cache = str(db_cache)
-        rows = read_pnp(pnp_csv, cfg.pnp)
-        parts = get_parts(cfg.database)
+        if pnp_csv is None:
+            # Nothing to place means nothing to look up: the component
+            # database is not opened at all.
+            rows, parts = [], {}
+        else:
+            rows = read_pnp(pnp_csv, cfg.pnp)
+            parts = get_parts(cfg.database)
         bm = make_build_model(
             cfg, rows, parts, allow_missing=allow_missing, timestamp=timestamp
         )
@@ -99,6 +108,7 @@ def build(panel_yaml, pnp_csv, output, check_only, force, allow_missing, db_cach
         f"{output}: {len(bm.placements)} placements, {len(bm.components)} "
         f"components, {len(bm.allocations)} circuit(s), "
         f"{len(cfg.fiducials)} fiducial(s)"
+        + (" - panel only, no --pnp given" if pnp_csv is None else "")
     )
 
 

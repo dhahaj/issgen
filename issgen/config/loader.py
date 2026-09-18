@@ -5,6 +5,7 @@ import yaml
 from pydantic import ValidationError
 
 from issgen.config.panel import PanelConfig
+from issgen.textfile import TextDecodeError, read_text
 
 
 class ConfigError(Exception):
@@ -14,9 +15,13 @@ class ConfigError(Exception):
 def load_panel(path: Path | str) -> PanelConfig:
     path = Path(path)
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        # Any Windows encoding: 'issgen init > panel.yaml' alone yields UTF-16
+        # in Windows PowerShell 5.1 and BOM-less UTF-8 in PowerShell 7.
+        raw = yaml.safe_load(read_text(path))
     except FileNotFoundError:
         raise ConfigError(f"panel file not found: {path}") from None
+    except TextDecodeError as exc:
+        raise ConfigError(f"{path}: {exc}") from None
     except yaml.YAMLError as exc:
         raise ConfigError(f"{path}: not valid YAML: {exc}") from exc
     if not isinstance(raw, dict):

@@ -111,7 +111,7 @@ def make_build_model(
             part = _placeholder(name)
         components.append(Component(part))
 
-    if cfg.pnp.side == "bottom":
+    if cfg.pnp.side == "bottom" and rows:
         warnings.append(
             "bottom-side output is UNTESTED on a real board - first-article "
             "inspect before trusting"

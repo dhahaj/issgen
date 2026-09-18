@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 
+import pytest
 import yaml
 from click.testing import CliRunner
 
@@ -39,6 +40,21 @@ def test_build_matches_golden(tmp_path):
     res = _run(*_build_args(tmp_path))
     assert res.exit_code == 0, res.output
     got = (tmp_path / "out.iss").read_bytes()
+    assert got == (FIX / "golden_program.iss").read_bytes()
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "cp1252", "utf-16"])
+def test_build_is_independent_of_pnp_encoding(tmp_path, encoding):
+    """Same placements in any encoding a Windows tool writes -> byte-identical
+    program. No re-saving the export as UTF-8-with-BOM first."""
+    lines = (FIX / "sample_pnp.csv").read_text().splitlines()
+    lines[0] += ",Description"
+    lines[1:] = [f'{line},"0.1µF ±10% -55°C"' for line in lines[1:]]
+    pnp = tmp_path / "pnp.csv"
+    pnp.write_bytes(("\r\n".join(lines) + "\r\n").encode(encoding))
+    res = _run(*_build_args(tmp_path, "enc.iss", None, pnp))
+    assert res.exit_code == 0, res.output
+    got = (tmp_path / "enc.iss").read_bytes()
     assert got == (FIX / "golden_program.iss").read_bytes()
 
 

@@ -18,7 +18,10 @@ GRID_TOLERANCE_MM = Decimal("1.0")
 
 @dataclass(frozen=True)
 class CheckReport:
-    bbox: tuple[Decimal, Decimal, Decimal, Decimal]  # min_x, min_y, max_x, max_y
+    # min_x, min_y, max_x, max_y - or None for a panel-only program (no
+    # placements), where the placement-containment fields below are vacuous:
+    # fits_* True, allocation_results empty.
+    bbox: tuple[Decimal, Decimal, Decimal, Decimal] | None
     fits_circuit: bool
     fits_panel: bool
     allocation_results: list[tuple[int, bool]]
@@ -66,33 +69,37 @@ def _spacings_consistent(values: list[Decimal]) -> bool:
 
 
 def run_checks(rows: list[PnpRow], cfg: PanelConfig) -> CheckReport:
-    emitted = [to_emitted(r, cfg) for r in rows]
-    xs = [p[0] for p in emitted]
-    ys = [p[1] for p in emitted]
-    bbox = (min(xs), min(ys), max(xs), max(ys))
-
-    # circuit_relative: emitted coordinates are CAD coordinates; the CAD origin
-    # sits at circuit.origin from the circuit's lower-left corner, so the
-    # circuit interior spans [-origin, outline - origin].
     org, co = cfg.circuit.origin, cfg.circuit.outline
-    fits_circuit = (
-        -org.x <= bbox[0]
-        and bbox[2] <= co.x - org.x
-        and -org.y <= bbox[1]
-        and bbox[3] <= co.y - org.y
-    )
-
     po = cfg.panel.outline
-    fits_panel = (
-        0 <= bbox[0] and bbox[2] <= po.x and 0 <= bbox[1] and bbox[3] <= po.y
-    )
+    allocations = build_allocations(cfg.circuit)
+    emitted = [to_emitted(r, cfg) for r in rows]
+
+    bbox = None
+    fits_circuit = fits_panel = True  # vacuous without placements
+    if emitted:
+        xs = [p[0] for p in emitted]
+        ys = [p[1] for p in emitted]
+        bbox = (min(xs), min(ys), max(xs), max(ys))
+
+        # circuit_relative: emitted coordinates are CAD coordinates; the CAD
+        # origin sits at circuit.origin from the circuit's lower-left corner,
+        # so the circuit interior spans [-origin, outline - origin].
+        fits_circuit = (
+            -org.x <= bbox[0]
+            and bbox[2] <= co.x - org.x
+            and -org.y <= bbox[1]
+            and bbox[3] <= co.y - org.y
+        )
+        fits_panel = (
+            0 <= bbox[0] and bbox[2] <= po.x and 0 <= bbox[1] and bbox[3] <= po.y
+        )
 
     # Panel containment per circuit instance. Circuit lower-left of instance k
     # is assumed at panel (0,0) + allocation k (allocation 0 anchors the array
     # at the panel corner); the placement bbox additionally shifts by origin.
-    allocations = build_allocations(cfg.circuit)
+    # With no placements there is no bbox to shift, so nothing to test.
     allocation_results: list[tuple[int, bool]] = []
-    for idx, alloc in enumerate(allocations):
+    for idx, alloc in enumerate(allocations if bbox is not None else []):
         lo_x = bbox[0] + org.x + alloc.x
         hi_x = bbox[2] + org.x + alloc.x
         lo_y = bbox[1] + org.y + alloc.y

@@ -4,14 +4,17 @@ Column names come from ``pnp.columns`` in the panel YAML (Altium export
 templates vary). Values are Decimal; a ``mm``/``mil`` suffix inside a value
 overrides the configured units for that value. Rotation is normalized to
 [0, 360) and passed through otherwise - Altium is CCW-positive, matching the
-convention observed in JaNets programs.
+convention observed in JaNets programs. The file may be in any encoding a
+Windows tool writes (see issgen.textfile) - no byte-order mark required.
 """
 import csv
+import io
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from issgen.config.panel import PnpSection
+from issgen.textfile import TextDecodeError, read_text
 
 MM_PER_MIL = Decimal("25.4") / 1000
 
@@ -57,25 +60,28 @@ def read_pnp(path: Path | str, cfg: PnpSection) -> list[PnpRow]:
     path = Path(path)
     cols = cfg.columns
     try:
-        with path.open(newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            header = reader.fieldnames or []
-            required = {
-                "designator": cols.designator,
-                "x": cols.x,
-                "y": cols.y,
-                "rotation": cols.rotation,
-                "layer": cols.layer,
-            }
-            missing = [name for name in required.values() if name not in header]
-            if missing:
-                raise PnpError(
-                    f"{path}: configured column(s) {missing} not in CSV header "
-                    f"{header}; adjust pnp.columns in the panel YAML"
-                )
-            raw_rows = list(reader)
+        text = read_text(path)
     except FileNotFoundError:
         raise PnpError(f"P&P file not found: {path}") from None
+    except TextDecodeError as exc:
+        raise PnpError(f"{path}: {exc}") from None
+    # newline="" as csv requires: quoted fields may span lines
+    reader = csv.DictReader(io.StringIO(text, newline=""))
+    header = reader.fieldnames or []
+    required = {
+        "designator": cols.designator,
+        "x": cols.x,
+        "y": cols.y,
+        "rotation": cols.rotation,
+        "layer": cols.layer,
+    }
+    missing = [name for name in required.values() if name not in header]
+    if missing:
+        raise PnpError(
+            f"{path}: configured column(s) {missing} not in CSV header "
+            f"{header}; adjust pnp.columns in the panel YAML"
+        )
+    raw_rows = list(reader)
 
     rows: list[PnpRow] = []
     for raw in raw_rows:
